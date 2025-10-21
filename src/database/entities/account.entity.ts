@@ -21,7 +21,7 @@ export class Account {
   username: string;
 
   @Column({ type: 'text' })
-  passwordEncrypted: string;
+  password: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   url: string;
