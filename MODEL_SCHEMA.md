@@ -9,7 +9,7 @@ Estes modelos definem quem é o usuário e o que ele pode ver (`AccessLevel`).
 | `Department` | `id`, `name` | PK, String | - |
 | `Team` | `id`, `name`, `department_id` | PK, String, FK | FK para `Department` |
 | `AccessLevel` | `id`, `name`, `description` | PK, String, Text | **Ponto de Controle:** Define a visibilidade de todos os Itens Documentáveis. |
-| `User` | `id`, `name`, `email`, `password`, `department_id`, `team_id`, `access_level_id` | PK, String, String, FK, FK, FK | FKs para `Department`, `Team`, `AccessLevel` |
+| `User` | `id`, `name`, `email`, `password_digest`, `department_id`, `team_id`, `access_level_id` | PK, String, String, FK, FK, FK | FKs para `Department`, `Team`, `AccessLevel` |
 
 ## 2. Itens Documentáveis (Reusable Assets)
 
