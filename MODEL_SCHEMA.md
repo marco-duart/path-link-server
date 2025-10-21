@@ -52,8 +52,7 @@ graph TD
     end
 
     subgraph C[Fluxo Principal]
-        PR(Process) --> AL
-        PR --> S(Step)
+        PR(Process) --> S(Step)
         S --> SR(StepRelationship)
         S --> SA(StepAsset)
     end
