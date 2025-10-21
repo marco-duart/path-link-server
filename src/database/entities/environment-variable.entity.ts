@@ -1,10 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-} from 'typeorm';
-import { AccessLevel } from './access-level.entity';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity('environment_variables')
 export class EnvironmentVariable {
@@ -23,6 +17,10 @@ export class EnvironmentVariable {
   @Column({ type: 'varchar', length: 100 })
   scope: string;
 
-  @ManyToOne(() => AccessLevel)
-  accessLevel: AccessLevel;
+  @Column({
+    type: 'integer',
+    default: 10,
+    name: 'required_level',
+  })
+  requiredLevel: number;
 }

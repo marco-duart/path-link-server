@@ -7,7 +7,6 @@ import {
 } from 'typeorm';
 import { Step } from './step.entity';
 import { User } from './user.entity';
-import { AccessLevel } from './access-level.entity';
 
 @Entity('processes')
 export class Process {
@@ -32,6 +31,10 @@ export class Process {
   @ManyToOne(() => User)
   createdBy: User;
 
-  @ManyToOne(() => AccessLevel)
-  accessLevel: AccessLevel;
+  @Column({
+    type: 'integer',
+    default: 10,
+    name: 'required_level',
+  })
+  requiredLevel: number;
 }

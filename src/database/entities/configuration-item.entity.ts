@@ -2,9 +2,7 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
 } from 'typeorm';
-import { AccessLevel } from './access-level.entity';
 
 @Entity('configuration_items')
 export class ConfigurationItem {
@@ -23,6 +21,10 @@ export class ConfigurationItem {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
-  @ManyToOne(() => AccessLevel)
-  accessLevel: AccessLevel;
+  @Column({
+    type: 'integer',
+    default: 10,
+    name: 'required_level',
+  })
+  requiredLevel: number;
 }

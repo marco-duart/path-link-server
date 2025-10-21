@@ -1,10 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-} from 'typeorm';
-import { AccessLevel } from './access-level.entity';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity('repositories')
 export class Repository {
@@ -23,6 +17,10 @@ export class Repository {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @ManyToOne(() => AccessLevel)
-  accessLevel: AccessLevel;
+  @Column({
+    type: 'integer',
+    default: 10,
+    name: 'required_level',
+  })
+  requiredLevel: number;
 }

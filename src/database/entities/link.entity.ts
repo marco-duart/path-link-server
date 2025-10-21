@@ -2,9 +2,7 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
 } from 'typeorm';
-import { AccessLevel } from './access-level.entity';
 
 @Entity('links')
 export class Link {
@@ -20,6 +18,10 @@ export class Link {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @ManyToOne(() => AccessLevel)
-  accessLevel: AccessLevel;
+  @Column({
+    type: 'integer',
+    default: 10,
+    name: 'required_level',
+  })
+  requiredLevel: number;
 }

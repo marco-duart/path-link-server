@@ -8,7 +8,6 @@ import {
 } from 'typeorm';
 import { StepAsset } from './step-asset.entity';
 import { User } from './user.entity';
-import { AccessLevel } from './access-level.entity';
 
 @Entity('assets')
 export class Asset {
@@ -31,6 +30,10 @@ export class Asset {
   @JoinColumn({ name: 'uploaded_by_id' })
   uploadedBy: User;
 
-  @ManyToOne(() => AccessLevel)
-  accessLevel: AccessLevel;
+  @Column({
+    type: 'integer',
+    default: 10,
+    name: 'required_level',
+  })
+  requiredLevel: number;
 }
