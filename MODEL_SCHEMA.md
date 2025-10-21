@@ -9,7 +9,7 @@ Estes modelos definem quem é o usuário e o que ele pode ver (`AccessLevel`).
 | `Department` | `id`, `name` | PK, String | - |
 | `Team` | `id`, `name`, `department_id` | PK, String, FK | FK para `Department` |
 | `AccessLevel` | `id`, `name`, `description` | PK, String, Text | **Ponto de Controle:** Define a visibilidade de todos os Itens Documentáveis. |
-| `User` | `id`, `username`, `email`, `department_id`, `team_id`, `access_level_id` | PK, String, String, FK, FK, FK | FKs para `Department`, `Team`, `AccessLevel` |
+| `User` | `id`, `name`, `email`, `password`, `department_id`, `team_id`, `access_level_id` | PK, String, String, FK, FK, FK | FKs para `Department`, `Team`, `AccessLevel` |
 
 ## 2. Itens Documentáveis (Reusable Assets)
 
@@ -17,7 +17,7 @@ São as entidades estáticas que são referenciadas nos Processos.
 
 | Modelo | Atributo (em inglês) | Tipo | Notas |
 | :--- | :--- | :--- | :--- |
-| `Account` | `id`, `name`, `type`, `username`, **`password_encrypted`**, `url`, `notes`, `access_level_id` | PK, String, String, String, **String (Criptografado)**, String, Text, FK | Ex: Contas Admin/Shared (Github, Sendgrid). |
+| `Account` | `id`, `name`, `type`, `username`, `password`, `url`, `notes`, `access_level_id` | PK, String, String, String, **String (Criptografado)**, String, Text, FK | Ex: Contas Admin/Shared (Github, Sendgrid). |
 | `Repository` | `id`, `name`, `url`, `tech_stack`, `description`, `access_level_id` | PK, String, String, String, Text, FK | Repositórios de código (Git). |
 | `Database` | `id`, `name`, `type`, `host`, `port`, `credentials_fk`, `notes`, `access_level_id` | PK, String, String, String, Int, FK, Text, FK | Referência a credenciais salvas em `Account` ou outra tabela segura. |
 | `EnvironmentVariable` | `id`, `name`, **`value_encrypted`**, `description`, `scope`, `access_level_id` | PK, String, **String (Criptografado)**, Text, String, FK | Variáveis de ambiente sensíveis. |
