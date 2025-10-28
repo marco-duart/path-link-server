@@ -22,7 +22,7 @@ export class Process {
   @Column({ type: 'varchar', length: 100 })
   category: string;
 
-  @Column({ type: 'boolean', default: true })
+  @Column({ type: 'boolean', default: true, name: 'is_active' })
   isActive: boolean;
 
   @OneToMany(() => Step, (step) => step.process)
