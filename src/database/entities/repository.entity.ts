@@ -11,7 +11,7 @@ export class Repository {
   @Column({ type: 'varchar', length: 500 })
   url: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, name: 'tech_stack' })
   techStack: string;
 
   @Column({ type: 'text', nullable: true })
