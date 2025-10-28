@@ -8,7 +8,7 @@ export class EnvironmentVariable {
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', name: 'value_encrypted' })
   valueEncrypted: string;
 
   @Column({ type: 'text', nullable: true })
