@@ -58,8 +58,8 @@ export class AuthService {
           name: true,
           email: true,
           id: true,
-          password_digest: false,
-          accessLevel: true,
+          roleName: true,
+          passwordDigest: true,
           department: true,
           team: true,
         },
@@ -76,7 +76,7 @@ export class AuthService {
         throw new HttpException(EXCEPTION_MESSAGE.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
       }
 
-      const compare = await bcrypt.compare(loginDto.password, user.password_digest);
+      const compare = await bcrypt.compare(loginDto.password, user.passwordDigest);
 
       if (!compare) {
         throw new UnauthorizedException(EXCEPTION_MESSAGE.WRONG_CREDENTIALS);
@@ -86,7 +86,7 @@ export class AuthService {
         name: user.name,
         email: user.email,
         user: user.id,
-        accessLevel: user.accessLevel,
+        roleName: user.roleName,
         department: user.department,
         team: user.team,
       };
@@ -106,7 +106,7 @@ export class AuthService {
 
   async me(id: number) {
     try {
-      const user = await this.userRepository.findOneOrFail({ where: { id }, relations: ['accessLevel', 'department', 'team'] });
+      const user = await this.userRepository.findOneOrFail({ where: { id }, relations: ['department', 'team'] });
       return user;
     } catch (error) {
       throw new HttpException(

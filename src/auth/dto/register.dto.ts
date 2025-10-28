@@ -14,13 +14,13 @@ export class RegisterDto {
 
   @IsNumber()
   @IsNotEmpty()
+  roleLevel: number;
+
+  @IsNumber()
+  @IsNotEmpty()
   departmentId: number;
 
   @IsNumber()
   @IsNotEmpty()
   teamId?: number;
-
-  @IsNumber()
-  @IsNotEmpty()
-  accessLevelId: number;
 }
