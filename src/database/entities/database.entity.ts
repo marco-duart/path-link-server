@@ -17,8 +17,8 @@ export class Database {
   @Column({ type: 'int' })
   port: number;
 
-  @Column({ type: 'varchar', length: 255 })
-  password: string;
+  @Column({ type: 'varchar', length: 255, name: 'credentials_encrypted' })
+  credentialsEncrypted: string;
 
   @Column({ type: 'text', nullable: true })
   notes: string;
