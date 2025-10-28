@@ -17,7 +17,7 @@ export class Step {
   @ManyToOne(() => Process, (process) => process.steps, { onDelete: 'CASCADE' })
   process: Process;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'int', name: 'step_number' })
   stepNumber: number;
 
   @Column({ type: 'varchar', length: 255 })
@@ -26,13 +26,13 @@ export class Step {
   @Column({ type: 'text' })
   instructions: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, name: 'expected_result' })
   expectedResult: string | null;
 
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 
-  @Column({ type: 'boolean', default: false })
+  @Column({ type: 'boolean', default: false, name: 'is_optional' })
   isOptional: boolean;
 
   @OneToMany(() => StepAsset, (stepAsset) => stepAsset.step)
