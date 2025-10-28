@@ -11,9 +11,9 @@ export class StepRelationship {
   })
   step: Step;
 
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: 'varchar', length: 100, name: 'related_model' })
   relatedModel: string;
 
-  @Column({ type: 'uuid' })
+  @Column({ type: 'uuid', name: 'related_id' })
   relatedId: string;
 }
