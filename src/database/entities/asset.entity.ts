@@ -20,7 +20,7 @@ export class Asset {
   @Column({ type: 'varchar', length: 500 })
   url: string;
 
-  @Column({ type: 'varchar', length: 100 })
+  @Column({ type: 'varchar', length: 100, name: 'mime_type' })
   mimeType: string;
 
   @OneToMany(() => StepAsset, (stepAsset) => stepAsset.asset)
