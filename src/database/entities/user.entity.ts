@@ -23,8 +23,8 @@ export class User {
   @Column({ type: 'varchar', length: 100, unique: true })
   name: string;
 
-  @Column({ type: 'varchar', length: 255 })
-  password_digest: string;
+  @Column({ type: 'varchar', length: 255, name: 'password_digest' })
+  passwordDigest: string;
 
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
@@ -60,8 +60,8 @@ export class User {
   @BeforeInsert()
   async hashPassword() {
     try {
-      if (this.password_digest) {
-        this.password_digest = await bcrypt.hash(this.password_digest, 10);
+      if (this.passwordDigest) {
+        this.passwordDigest = await bcrypt.hash(this.passwordDigest, 10);
       }
     } catch (error) {
       throw new BadRequestException('Error hashing password');
