@@ -5,9 +5,9 @@ export const RoleHierarchy = {
   Coordenador: 40,
   Gerente: 50,
   Admin: 99,
-};
+} as const;
 
-export const RoleNames = Object.keys(RoleHierarchy);
+export type RoleNames = keyof typeof RoleHierarchy;
 
 export function getLevelByName(roleName: string): number {
   return RoleHierarchy[roleName as keyof typeof RoleHierarchy] || 0;
