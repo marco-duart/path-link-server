@@ -15,12 +15,12 @@ Este design garante que, ao atualizar uma Conta, o sistema saiba exatamente quai
 
 ### Exemplo de Workflow Central
 
-1.  **Criação da Base:** O time de Infra cadastra a `Account` de administrador do AWS e a marca com o `AccessLevel` "Infra Devs".
-2.  **Desenho do Processo:** O Arquiteto de Software cria o `Process` "Deploy do Serviço X" e o marca com o `AccessLevel` "Devs Backend".
+1.  **Criação da Base:** O time de Infra cadastra a `Account` de administrador do AWS e a marca com o `roleLevel` "Infra Devs".
+2.  **Desenho do Processo:** O Arquiteto de Software cria o `Process` "Deploy do Serviço X" e o marca com o `roleLevel` "Devs Backend".
 3.  **Montagem dos Passos:**
     * **Passo 1:** "Acessar a ferramenta de CI/CD."
     * **Passo 2:** "Logar no AWS." **Este Passo é relacionado com a `Account` de administrador (criada no passo 1).**
-4.  **Controle de Acesso:** Apenas usuários com `AccessLevel` "Devs Backend" ou superior podem **ver** o Processo. No entanto, para o Passo 2, eles precisam ter acesso à **própria Account** (que tem o `AccessLevel` "Infra Devs"). O sistema deve garantir que o usuário tenha interseção nos dois Níveis de Acesso ou que o nível do usuário seja suficiente para ambos.
+4.  **Controle de Acesso:** Apenas usuários com `roleLevel` "Devs Backend" ou superior podem **ver** o Processo. No entanto, para o Passo 2, eles precisam ter acesso à **própria Account** (que tem o `roleLevel` "Infra Devs"). O sistema deve garantir que o usuário tenha interseção nos dois Níveis de Acesso ou que o nível do usuário seja suficiente para ambos.
 
 ---
 
