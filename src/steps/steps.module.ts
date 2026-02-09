@@ -6,13 +6,15 @@ import { Step } from '../database/entities/step.entity';
 import { ProcessesModule } from '../processes/processes.module';
 import { StepAssetsModule } from '../step-assets/step-assets.module';
 import { StepRelationshipsModule } from '../step-relationships/step-relationships.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Step]),
-    ProcessesModule,
-    StepAssetsModule,
-    StepRelationshipModule,
+    forwardRef(() => ProcessesModule),
+    forwardRef(() => StepAssetsModule),
+    forwardRef(() => StepRelationshipsModule),
+    AuthModule,
   ],
   controllers: [StepsController],
   providers: [StepsService],
