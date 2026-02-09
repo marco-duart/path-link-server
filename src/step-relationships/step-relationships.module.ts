@@ -11,11 +11,12 @@ import { DatabasesModule } from '../databases/databases.module';
 import { EnvironmentVariablesModule } from '../environment-variables/environment-variables.module';
 import { LinksModule } from '../links/links.module';
 import { RepositoriesModule } from '../repositories/repositories.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([StepRelationship]),
-    StepsModule,
+    forwardRef(() => StepsModule),
     AccountsModule,
     AssetsModule,
     ConfigurationItemsModule,
@@ -23,6 +24,7 @@ import { RepositoriesModule } from '../repositories/repositories.module';
     EnvironmentVariablesModule,
     LinksModule,
     RepositoriesModule,
+    AuthModule,
   ],
   controllers: [StepRelationshipsController],
   providers: [StepRelationshipsService],
