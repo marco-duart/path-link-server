@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { ConfigurationItemsService } from './configuration-items.service';
 import { CreateConfigurationItemDto } from './dto/create-configuration-item.dto';
 import { UpdateConfigurationItemDto } from './dto/update-configuration-item.dto';
@@ -14,7 +25,7 @@ export class ConfigurationItemsController {
   constructor(private readonly configItemsService: ConfigurationItemsService) {}
 
   @UseGuards(RoleGuard)
-  @Roles("Analista") 
+  @Roles('Analista')
   @Post()
   create(@Body() createConfigItemDto: CreateConfigurationItemDto) {
     return this.configItemsService.create(createConfigItemDto);
@@ -27,28 +38,34 @@ export class ConfigurationItemsController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string, @CurrentUser('roleName') roleName: string) {
+  async findOne(
+    @Param('id') id: string,
+    @CurrentUser('roleName') roleName: string,
+  ) {
     const configItem = await this.configItemsService.findOne(id);
     const userLevel = getLevelByName(roleName);
-    
+
     if (userLevel < configItem.requiredLevel) {
-        throw new HttpException(
-            'Acesso negado. Nível de Role insuficiente para visualizar este Configuration Item.', 
-            HttpStatus.FORBIDDEN
-        );
+      throw new HttpException(
+        'Acesso negado. Nível de Role insuficiente para visualizar este Configuration Item.',
+        HttpStatus.FORBIDDEN,
+      );
     }
     return configItem;
   }
-  
+
   @UseGuards(RoleGuard)
-  @Roles("Coordenador") 
+  @Roles('Coordenador')
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateConfigItemDto: UpdateConfigurationItemDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateConfigItemDto: UpdateConfigurationItemDto,
+  ) {
     return this.configItemsService.update(id, updateConfigItemDto);
   }
 
   @UseGuards(RoleGuard)
-  @Roles("Gerente")
+  @Roles('Gerente')
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.configItemsService.remove(id);
