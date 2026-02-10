@@ -13,6 +13,8 @@ import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
 import { EXCEPTION_MESSAGE } from '../enums/exception-message.enum';
+import { AuthResponseDto, UserAuthDto } from './dto/auth-response.dto';
+import { getLevelByName } from '../enums/role.enum';
 
 @Injectable()
 export class AuthService {
@@ -35,9 +37,11 @@ export class AuthService {
 
       return createUser;
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStatus = error instanceof HttpException ? error.getStatus() : HttpStatus.BAD_REQUEST;
       throw new HttpException(
-        error.message,
-        error?.status || HttpStatus.BAD_REQUEST,
+        errorMessage,
+        errorStatus,
       );
     }
   }
@@ -46,7 +50,9 @@ export class AuthService {
     try {
       return await this.userRepository.exists({ where: { email } });
     } catch (error) {
-      throw new HttpException(error.message, error.status);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStatus = error instanceof HttpException ? error.getStatus() : HttpStatus.BAD_REQUEST;
+      throw new HttpException(errorMessage, errorStatus);
     }
   }
 
@@ -58,60 +64,107 @@ export class AuthService {
           name: true,
           email: true,
           id: true,
-          roleName: true,
+          roleLevel: true,
           passwordDigest: true,
           department: true,
           team: true,
         },
+        relations: ['department', 'team'],
       });
     } catch (error) {
-      throw new HttpException(error.message, error.status);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStatus = error instanceof HttpException ? error.getStatus() : HttpStatus.BAD_REQUEST;
+      throw new HttpException(errorMessage, errorStatus);
     }
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto): Promise<AuthResponseDto> {
     try {
       const user = await this.getUserByEmail(loginDto.email);
       if (!user) {
-        throw new HttpException(EXCEPTION_MESSAGE.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
+        throw new HttpException(
+          EXCEPTION_MESSAGE.USER_NOT_FOUND,
+          HttpStatus.NOT_FOUND,
+        );
       }
 
-      const compare = await bcrypt.compare(loginDto.password, user.passwordDigest);
+      const compare = await bcrypt.compare(
+        loginDto.password,
+        user.passwordDigest,
+      );
 
       if (!compare) {
         throw new UnauthorizedException(EXCEPTION_MESSAGE.WRONG_CREDENTIALS);
       }
+
+      const roleLevel = getLevelByName(user.roleName);
 
       const payload = {
         name: user.name,
         email: user.email,
         user: user.id,
         roleName: user.roleName,
+        roleLevel,
         department: user.department,
         team: user.team,
       };
 
-      const token = await this.jwtService.signAsync(payload);
+      const access_token = await this.jwtService.signAsync(payload);
+
+      const userAuthDto: UserAuthDto = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        roleLevel,
+        department: user.department
+          ? { id: user.department.id, name: user.department.name }
+          : undefined,
+        team: user.team
+          ? { id: user.team.id, name: user.team.name }
+          : undefined,
+      };
 
       return {
-        token,
+        access_token,
+        user: userAuthDto,
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStatus = error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
       throw new HttpException(
-        error.message,
-        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+        errorMessage,
+        errorStatus,
       );
     }
   }
 
-  async me(id: number) {
+  async me(id: number): Promise<UserAuthDto> {
     try {
-      const user = await this.userRepository.findOneOrFail({ where: { id }, relations: ['department', 'team'] });
-      return user;
+      const user = await this.userRepository.findOneOrFail({
+        where: { id },
+        relations: ['department', 'team'],
+      });
+
+      const roleLevel = getLevelByName(user.roleName);
+
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        roleName: user.roleName,
+        roleLevel,
+        department: user.department
+          ? { id: user.department.id, name: user.department.name }
+          : undefined,
+        team: user.team ? { id: user.team.id, name: user.team.name } : undefined,
+      };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStatus = error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
       throw new HttpException(
-        error.message,
-        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+        errorMessage,
+        errorStatus,
       );
     }
   }
