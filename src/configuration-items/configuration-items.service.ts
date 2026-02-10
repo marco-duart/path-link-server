@@ -12,32 +12,46 @@ export class ConfigurationItemsService {
     private configItemsRepository: Repository<ConfigurationItem>,
   ) {}
 
-  async create(createConfigItemDto: CreateConfigurationItemDto): Promise<ConfigurationItem> {
+  async create(
+    createConfigItemDto: CreateConfigurationItemDto,
+  ): Promise<ConfigurationItem> {
     const configItem = this.configItemsRepository.create(createConfigItemDto);
     return this.configItemsRepository.save(configItem);
   }
 
   async findAll(userLevel: number): Promise<ConfigurationItem[]> {
-    return this.configItemsRepository.createQueryBuilder('configItem')
+    return this.configItemsRepository
+      .createQueryBuilder('configItem')
       .where('configItem.required_level <= :userLevel', { userLevel })
       .getMany();
   }
 
   async findOne(id: string): Promise<ConfigurationItem> {
-    const configItem = await this.configItemsRepository.findOne({ where: { id } });
+    const configItem = await this.configItemsRepository.findOne({
+      where: { id },
+    });
 
     if (!configItem) {
-      throw new NotFoundException(`Configuration Item com ID ${id} não encontrado.`);
+      throw new NotFoundException(
+        `Configuration Item com ID ${id} não encontrado.`,
+      );
     }
 
     return configItem;
   }
 
-  async update(id: string, updateConfigItemDto: UpdateConfigurationItemDto): Promise<ConfigurationItem> {
-    const configItem = await this.configItemsRepository.findOne({ where: { id } });
+  async update(
+    id: string,
+    updateConfigItemDto: UpdateConfigurationItemDto,
+  ): Promise<ConfigurationItem> {
+    const configItem = await this.configItemsRepository.findOne({
+      where: { id },
+    });
 
     if (!configItem) {
-      throw new NotFoundException(`Configuration Item com ID ${id} não encontrado.`);
+      throw new NotFoundException(
+        `Configuration Item com ID ${id} não encontrado.`,
+      );
     }
 
     await this.configItemsRepository.update(id, updateConfigItemDto);
@@ -47,7 +61,9 @@ export class ConfigurationItemsService {
   async remove(id: string): Promise<void> {
     const result = await this.configItemsRepository.delete(id);
     if (result.affected === 0) {
-      throw new NotFoundException(`Configuration Item com ID ${id} não encontrado.`);
+      throw new NotFoundException(
+        `Configuration Item com ID ${id} não encontrado.`,
+      );
     }
   }
 }
