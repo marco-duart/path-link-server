@@ -3,9 +3,10 @@ import { ConfigurationItemsService } from './configuration-items.service';
 import { ConfigurationItemsController } from './configuration-items.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigurationItem } from '../database/entities/configuration-item.entity';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ConfigurationItem])],
+  imports: [TypeOrmModule.forFeature([ConfigurationItem]), AuthModule],
   controllers: [ConfigurationItemsController],
   providers: [ConfigurationItemsService],
   exports: [ConfigurationItemsService],
