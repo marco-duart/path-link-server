@@ -9,6 +9,7 @@ import { Asset } from '../database/entities/asset.entity';
 import { UploadedFile, AssetMetadataDto } from './dto/asset-metadata.dto';
 import { RoleHierarchy } from '../enums/role.enum';
 import * as path from 'path';
+import * as fs from 'fs/promises';
 import { UsersService } from '../users/users.service';
 
 @Injectable()
@@ -80,7 +81,6 @@ export class AssetsService {
     const filePath = path.join(process.cwd(), 'uploads', fileName);
 
     try {
-      const fs = require('fs/promises');
       await fs.unlink(filePath);
     } catch (error) {
       console.warn(
