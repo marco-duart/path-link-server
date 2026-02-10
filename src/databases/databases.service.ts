@@ -16,8 +16,7 @@ export class DatabasesService {
     @InjectRepository(Database)
     private databasesRepository: Repository<Database>,
   ) {
-    const key =
-      process.env.ENCRYPTION_KEY;
+    const key = process.env.ENCRYPTION_KEY;
     this.encryptionKey = crypto
       .createHash('sha256')
       .update(String(key))
