@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { StepAsset } from '../database/entities/step-asset.entity';
 import { CreateStepAssetDto } from './dto/create-step-asset.dto';
 import { UpdateStepAssetDto } from './dto/update-step-asset.dto';
-import { StepService } from '../steps/steps.service';
+import { StepsService } from '../steps/steps.service';
 import { AssetsService } from '../assets/assets.service';
 
 @Injectable()
@@ -12,15 +12,15 @@ export class StepAssetsService {
   constructor(
     @InjectRepository(StepAsset)
     private stepAssetsRepository: Repository<StepAsset>,
-    private stepService: StepService,
-    private assetService: AssetsService,
+    private stepsService: StepsService,
+    private assetsService: AssetsService,
   ) {}
 
   async create(createStepAssetDto: CreateStepAssetDto): Promise<StepAsset> {
-    const stepReference = await this.stepService.getStepReference(
+    const stepReference = await this.stepsService.getStepReference(
       createStepAssetDto.stepId,
     );
-    const assetReference = await this.assetService.findOne(
+    const assetReference = await this.assetsService.findOne(
       createStepAssetDto.assetId,
     );
 
