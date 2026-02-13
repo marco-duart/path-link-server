@@ -3,10 +3,10 @@ import { RepositoriesService } from './repositories.service';
 import { RepositoriesController } from './repositories.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from '../database/entities/repository.entity';
-import { JwtModule } from '@nestjs/jwt';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Repository]), JwtModule],
+  imports: [TypeOrmModule.forFeature([Repository]), AuthModule],
   controllers: [RepositoriesController],
   providers: [RepositoriesService],
   exports: [RepositoriesService],

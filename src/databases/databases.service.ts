@@ -75,7 +75,7 @@ export class DatabasesService {
   async findAll(userLevel: number): Promise<Database[]> {
     const databases = await this.databasesRepository
       .createQueryBuilder('db')
-      .where('db.required_level <= :userLevel', { userLevel })
+      .where('db.requiredLevel <= :userLevel', { userLevel })
       .getMany();
 
     return databases.map((db) => {
@@ -112,8 +112,6 @@ export class DatabasesService {
       updateData.credentialsEncrypted = this.encrypt(
         updateData.credentialsEncrypted,
       );
-      (updateData as any).password = updateData.credentialsEncrypted;
-      delete updateData.credentialsEncrypted;
     }
 
     await this.databasesRepository.update(id, updateData);

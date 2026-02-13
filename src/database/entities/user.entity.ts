@@ -34,7 +34,7 @@ export class User {
     default: RoleHierarchy.Auxiliar,
     name: 'role_level',
   })
-  private roleLevel: number;
+  roleLevel: number;
 
   public get roleName(): string {
     return getNameByLevel(this.roleLevel);
