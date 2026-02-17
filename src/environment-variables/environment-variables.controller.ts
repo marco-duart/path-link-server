@@ -18,6 +18,7 @@ import { RoleGuard } from '../auth/guards/role.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { getLevelByName } from '../enums/role.enum';
 import { Roles } from '../decorators/roles.decorator';
+import { JwtPayload } from '../auth/jwt/dto/jwt-payload.dto';
 
 @UseGuards(AuthGuard)
 @Controller('environment-variables')
@@ -32,9 +33,14 @@ export class EnvironmentVariablesController {
   }
 
   @Get()
-  findAll(@CurrentUser('roleName') roleName: string) {
-    const userLevel = getLevelByName(roleName);
-    return this.envVarService.findAll(userLevel);
+  findAll(@CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.envVarService.findAll(
+      userLevel,
+      user.roleName,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @Get(':id')

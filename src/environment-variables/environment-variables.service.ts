@@ -5,6 +5,7 @@ import { EnvironmentVariable } from '../database/entities/environment-variable.e
 import { CreateEnvironmentVariableDto } from './dto/create-environment-variable.dto';
 import { UpdateEnvironmentVariableDto } from './dto/update-environment-variable.dto';
 import * as crypto from 'crypto';
+import { getLevelByName } from '../enums/role.enum';
 
 @Injectable()
 export class EnvironmentVariablesService {
@@ -72,11 +73,26 @@ export class EnvironmentVariablesService {
     return this.envVarRepository.save(envVar);
   }
 
-  async findAll(userLevel: number): Promise<EnvironmentVariable[]> {
-    const envVars = await this.envVarRepository
+  async findAll(
+    userLevel: number,
+    roleName: string,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<EnvironmentVariable[]> {
+    const isAdmin = getLevelByName('Admin') === userLevel;
+
+    const query = this.envVarRepository
       .createQueryBuilder('envVar')
-      .where('envVar.required_level <= :userLevel', { userLevel })
-      .getMany();
+      .where('envVar.required_level <= :userLevel', { userLevel });
+
+    if (!isAdmin && userDepartmentId && userTeamId) {
+      query.andWhere(
+        '(envVar.department_id = :deptId AND envVar.team_id = :teamId)',
+        { deptId: userDepartmentId, teamId: userTeamId },
+      );
+    }
+
+    const envVars = await query.getMany();
 
     return envVars.map((envVar) => {
       (envVar as any).value = this.decrypt(envVar.valueEncrypted);
