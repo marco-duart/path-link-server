@@ -4,9 +4,12 @@ import {
   Column,
   OneToMany,
   ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Step } from './step.entity';
 import { User } from './user.entity';
+import { Department } from './department.entity';
+import { Team } from './team.entity';
 
 @Entity('processes')
 export class Process {
@@ -29,7 +32,16 @@ export class Process {
   steps: Step[];
 
   @ManyToOne(() => User)
+  @JoinColumn({ name: 'created_by_id' })
   createdBy: User;
+
+  @ManyToOne(() => Department, { nullable: true })
+  @JoinColumn({ name: 'department_id' })
+  department: Department;
+
+  @ManyToOne(() => Team, { nullable: true })
+  @JoinColumn({ name: 'team_id' })
+  team: Team;
 
   @Column({
     type: 'integer',

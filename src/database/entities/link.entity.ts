@@ -1,4 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Department } from './department.entity';
+import { Team } from './team.entity';
 
 @Entity('links')
 export class Link {
@@ -13,6 +15,14 @@ export class Link {
 
   @Column({ type: 'text', nullable: true })
   description: string;
+
+  @ManyToOne(() => Department, { nullable: true })
+  @JoinColumn({ name: 'department_id' })
+  department: Department;
+
+  @ManyToOne(() => Team, { nullable: true })
+  @JoinColumn({ name: 'team_id' })
+  team: Team;
 
   @Column({
     type: 'integer',

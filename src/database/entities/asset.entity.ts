@@ -8,6 +8,8 @@ import {
 } from 'typeorm';
 import { StepAsset } from './step-asset.entity';
 import { User } from './user.entity';
+import { Department } from './department.entity';
+import { Team } from './team.entity';
 
 @Entity('assets')
 export class Asset {
@@ -29,6 +31,14 @@ export class Asset {
   @ManyToOne(() => User)
   @JoinColumn({ name: 'uploaded_by_id' })
   uploadedBy: User;
+
+  @ManyToOne(() => Department, { nullable: true })
+  @JoinColumn({ name: 'department_id' })
+  department: Department;
+
+  @ManyToOne(() => Team, { nullable: true })
+  @JoinColumn({ name: 'team_id' })
+  team: Team;
 
   @Column({
     type: 'integer',
