@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { StepAsset } from '../database/entities/step-asset.entity';
@@ -9,6 +9,8 @@ import { AssetsService } from '../assets/assets.service';
 
 @Injectable()
 export class StepAssetsService {
+  private readonly logger = new Logger(StepAssetsService.name);
+
   constructor(
     @InjectRepository(StepAsset)
     private stepAssetsRepository: Repository<StepAsset>,
@@ -17,28 +19,82 @@ export class StepAssetsService {
   ) {}
 
   async create(createStepAssetDto: CreateStepAssetDto): Promise<StepAsset> {
-    const stepReference = await this.stepsService.getStepReference(
-      createStepAssetDto.stepId,
-    );
-    const assetReference = await this.assetsService.findOne(
-      createStepAssetDto.assetId,
+    this.logger.log(
+      `[create] Iniciando criação de StepAsset: ${JSON.stringify(createStepAssetDto)}`,
     );
 
-    const stepAsset = this.stepAssetsRepository.create({
-      caption: createStepAssetDto.caption,
+    try {
+      this.logger.log(
+        `[create] Buscando referência do Step: ${createStepAssetDto.stepId}`,
+      );
+      const stepReference = await this.stepsService.getStepReference(
+        createStepAssetDto.stepId,
+      );
+      this.logger.log(`[create] ✅ Step encontrado: ${stepReference.id}`);
 
-      step: stepReference,
-      asset: assetReference,
-    });
+      this.logger.log(`[create] Buscando Asset: ${createStepAssetDto.assetId}`);
+      const assetReference = await this.assetsService.findOne(
+        createStepAssetDto.assetId,
+      );
+      this.logger.log(
+        `[create] ✅ Asset encontrado: { id: "${assetReference.id}", filename: "${assetReference.filename}", url: "${assetReference.url}", requiredLevel: ${assetReference.requiredLevel} }`,
+      );
 
-    return this.stepAssetsRepository.save(stepAsset);
+      const stepAsset = this.stepAssetsRepository.create({
+        caption: createStepAssetDto.caption,
+        step: stepReference,
+        asset: assetReference,
+      });
+
+      this.logger.log(
+        `[create] Salvando StepAsset no BD com: { stepId: ${createStepAssetDto.stepId}, assetId: "${createStepAssetDto.assetId}", caption: "${createStepAssetDto.caption}" }`,
+      );
+      const savedStepAsset = await this.stepAssetsRepository.save(stepAsset);
+      this.logger.log(
+        `[create] ✅ StepAsset criado com sucesso: { id: ${savedStepAsset.id}, caption: "${savedStepAsset.caption}" }`,
+      );
+
+      return savedStepAsset;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `[create] ❌ Erro ao criar StepAsset: ${errorMsg}`,
+        error,
+      );
+      throw error;
+    }
   }
 
   async findByStepId(stepId: number): Promise<StepAsset[]> {
-    return this.stepAssetsRepository.find({
+    this.logger.log(`[findByStepId] Buscando StepAssets para Step: ${stepId}`);
+    const assets = await this.stepAssetsRepository.find({
       where: { step: { id: stepId } },
       relations: ['asset'],
     });
+    this.logger.log(
+      `[findByStepId] ✅ ${assets.length} asset(s) encontrado(s) para Step ${stepId}`,
+    );
+
+    if (assets.length === 0) {
+      this.logger.warn(
+        `[findByStepId] ⚠️  Nenhum asset encontrado para o Step ${stepId}`,
+      );
+      return assets;
+    }
+
+    assets.forEach((sa, idx) => {
+      if (sa.asset) {
+        this.logger.log(
+          `[findByStepId] Asset[${idx}]: { stepAssetId: ${sa.id}, caption: "${sa.caption}", asset: { id: "${sa.asset.id}", filename: "${sa.asset.filename}", url: "${sa.asset.url}" } }`,
+        );
+      } else {
+        this.logger.warn(
+          `[findByStepId] Asset[${idx}]: ⚠️  stepAssetId=${sa.id} mas o ASSET É NULL!`,
+        );
+      }
+    });
+
+    return assets;
   }
 
   async findOne(id: number): Promise<StepAsset> {
