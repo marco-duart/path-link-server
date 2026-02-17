@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Link } from '../database/entities/link.entity';
 import { CreateLinkDto } from './dto/create-link.dto';
 import { UpdateLinkDto } from './dto/update-link.dto';
+import { getLevelByName } from '../enums/role.enum';
 
 @Injectable()
 export class LinksService {
@@ -17,11 +18,26 @@ export class LinksService {
     return this.linksRepository.save(link);
   }
 
-  async findAll(userLevel: number): Promise<Link[]> {
-    return this.linksRepository
+  async findAll(
+    userLevel: number,
+    roleName: string,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Link[]> {
+    const isAdmin = getLevelByName('Admin') === userLevel;
+
+    const query = this.linksRepository
       .createQueryBuilder('link')
-      .where('link.required_level <= :userLevel', { userLevel })
-      .getMany();
+      .where('link.required_level <= :userLevel', { userLevel });
+
+    if (!isAdmin && userDepartmentId && userTeamId) {
+      query.andWhere(
+        '(link.department_id = :deptId AND link.team_id = :teamId)',
+        { deptId: userDepartmentId, teamId: userTeamId },
+      );
+    }
+
+    return query.getMany();
   }
 
   async findOne(id: string): Promise<Link> {
