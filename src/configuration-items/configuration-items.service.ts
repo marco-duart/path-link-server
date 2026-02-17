@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { ConfigurationItem } from '../database/entities/configuration-item.entity';
 import { CreateConfigurationItemDto } from './dto/create-configuration-item.dto';
 import { UpdateConfigurationItemDto } from './dto/update-configuration-item.dto';
+import { getLevelByName } from '../enums/role.enum';
 
 @Injectable()
 export class ConfigurationItemsService {
@@ -19,11 +20,26 @@ export class ConfigurationItemsService {
     return this.configItemsRepository.save(configItem);
   }
 
-  async findAll(userLevel: number): Promise<ConfigurationItem[]> {
-    return this.configItemsRepository
+  async findAll(
+    userLevel: number,
+    roleName: string,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<ConfigurationItem[]> {
+    const isAdmin = getLevelByName('Admin') === userLevel;
+
+    const query = this.configItemsRepository
       .createQueryBuilder('configItem')
-      .where('configItem.required_level <= :userLevel', { userLevel })
-      .getMany();
+      .where('configItem.required_level <= :userLevel', { userLevel });
+
+    if (!isAdmin && userDepartmentId && userTeamId) {
+      query.andWhere(
+        '(configItem.department_id = :deptId AND configItem.team_id = :teamId)',
+        { deptId: userDepartmentId, teamId: userTeamId },
+      );
+    }
+
+    return query.getMany();
   }
 
   async findOne(id: string): Promise<ConfigurationItem> {
