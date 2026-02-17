@@ -37,12 +37,13 @@ export class AuthService {
 
       return createUser;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStatus = error instanceof HttpException ? error.getStatus() : HttpStatus.BAD_REQUEST;
-      throw new HttpException(
-        errorMessage,
-        errorStatus,
-      );
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStatus =
+        error instanceof HttpException
+          ? error.getStatus()
+          : HttpStatus.BAD_REQUEST;
+      throw new HttpException(errorMessage, errorStatus);
     }
   }
 
@@ -50,8 +51,12 @@ export class AuthService {
     try {
       return await this.userRepository.exists({ where: { email } });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStatus = error instanceof HttpException ? error.getStatus() : HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStatus =
+        error instanceof HttpException
+          ? error.getStatus()
+          : HttpStatus.BAD_REQUEST;
       throw new HttpException(errorMessage, errorStatus);
     }
   }
@@ -72,8 +77,12 @@ export class AuthService {
         relations: ['department', 'team'],
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStatus = error instanceof HttpException ? error.getStatus() : HttpStatus.BAD_REQUEST;
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStatus =
+        error instanceof HttpException
+          ? error.getStatus()
+          : HttpStatus.BAD_REQUEST;
       throw new HttpException(errorMessage, errorStatus);
     }
   }
@@ -105,8 +114,8 @@ export class AuthService {
         user: user.id,
         roleName: user.roleName,
         roleLevel,
-        department: user.department,
-        team: user.team,
+        departmentId: user.department?.id,
+        teamId: user.team?.id,
       };
 
       const access_token = await this.jwtService.signAsync(payload);
@@ -130,12 +139,13 @@ export class AuthService {
         user: userAuthDto,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStatus = error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
-      throw new HttpException(
-        errorMessage,
-        errorStatus,
-      );
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStatus =
+        error instanceof HttpException
+          ? error.getStatus()
+          : HttpStatus.INTERNAL_SERVER_ERROR;
+      throw new HttpException(errorMessage, errorStatus);
     }
   }
 
@@ -157,15 +167,18 @@ export class AuthService {
         department: user.department
           ? { id: user.department.id, name: user.department.name }
           : undefined,
-        team: user.team ? { id: user.team.id, name: user.team.name } : undefined,
+        team: user.team
+          ? { id: user.team.id, name: user.team.name }
+          : undefined,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStatus = error instanceof HttpException ? error.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
-      throw new HttpException(
-        errorMessage,
-        errorStatus,
-      );
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorStatus =
+        error instanceof HttpException
+          ? error.getStatus()
+          : HttpStatus.INTERNAL_SERVER_ERROR;
+      throw new HttpException(errorMessage, errorStatus);
     }
   }
 }
