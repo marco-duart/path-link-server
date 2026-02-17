@@ -18,6 +18,7 @@ import { RoleGuard } from '../auth/guards/role.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { getLevelByName } from '../enums/role.enum';
 import { Roles } from '../decorators/roles.decorator';
+import { JwtPayload } from '../auth/jwt/dto/jwt-payload.dto';
 
 @UseGuards(AuthGuard)
 @Controller('databases')
@@ -32,9 +33,14 @@ export class DatabasesController {
   }
 
   @Get()
-  findAll(@CurrentUser('roleName') roleName: string) {
-    const userLevel = getLevelByName(roleName);
-    return this.databasesService.findAll(userLevel);
+  findAll(@CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.databasesService.findAll(
+      userLevel,
+      user.roleName,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @Get(':id')

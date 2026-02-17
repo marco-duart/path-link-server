@@ -5,6 +5,7 @@ import { Database } from '../database/entities/database.entity';
 import { CreateDatabaseDto } from './dto/create-database.dto';
 import { UpdateDatabaseDto } from './dto/update-database.dto';
 import * as crypto from 'crypto';
+import { getLevelByName } from '../enums/role.enum';
 
 @Injectable()
 export class DatabasesService {
@@ -72,11 +73,26 @@ export class DatabasesService {
     return this.databasesRepository.save(database);
   }
 
-  async findAll(userLevel: number): Promise<Database[]> {
-    const databases = await this.databasesRepository
+  async findAll(
+    userLevel: number,
+    roleName: string,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Database[]> {
+    const isAdmin = getLevelByName('Admin') === userLevel;
+
+    const query = this.databasesRepository
       .createQueryBuilder('db')
-      .where('db.requiredLevel <= :userLevel', { userLevel })
-      .getMany();
+      .where('db.requiredLevel <= :userLevel', { userLevel });
+
+    if (!isAdmin && userDepartmentId && userTeamId) {
+      query.andWhere(
+        '(db.department_id = :deptId AND db.team_id = :teamId)',
+        { deptId: userDepartmentId, teamId: userTeamId },
+      );
+    }
+
+    const databases = await query.getMany();
 
     return databases.map((db) => {
       db.credentialsEncrypted = this.decrypt(db.credentialsEncrypted);
