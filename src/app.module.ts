@@ -16,6 +16,7 @@ import { StepAssetsModule } from './step-assets/step-assets.module';
 import { StepsModule } from './steps/steps.module';
 import { ProcessesModule } from './processes/processes.module';
 import { StepRelationshipsModule } from './step-relationships/step-relationships.module';
+import { DeploysModule } from './deploys/deploys.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { StepRelationshipsModule } from './step-relationships/step-relationships
     StepsModule,
     ProcessesModule,
     StepRelationshipsModule,
+    DeploysModule,
   ],
 })
 export class AppModule {}

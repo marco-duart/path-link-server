@@ -21,6 +21,7 @@ São as entidades estáticas que são referenciadas nos Processos.
 | `Database` | `id`, `name`, `type`, `host`, `port`, `credentials_fk`, `notes`, `required_role` | PK, String, String, String, Int, FK, Text, FK | Referência a credenciais salvas em `Account` ou outra tabela segura. |
 | `EnvironmentVariable` | `id`, `name`, **`value_encrypted`**, `description`, `scope`, `required_role` | PK, String, **String (Criptografado)**, Text, String, FK | Variáveis de ambiente sensíveis. |
 | `ConfigurationItem` | `id`, `name`, `type`, `details`, `notes`, `required_role` | PK, String, String, JSON/Text, Text, FK | Configurações de infraestrutura (VMs, Balanceadores). |
+| `Deploy` | `id`, `name`, `type`, `environment`, `region`, `endpoint`, `description`, `notes`, `credentials_id`, `required_role` | PK, String, String, String, String, String, Text, Text, FK, FK | Ambientes de deploy (AWS, Google Cloud, Azure, Local VM, etc). Referencia credenciais em `Account`. |
 | `Link` | `id`, `name`, `url`, `description`, `required_role` | PK, String, String, Text, FK | Links úteis para documentação externa. |
 | `Asset` | `id`, `filename`, `url`, `mime_type`, `uploaded_by_id`, `required_role` | PK, String, String, String, FK, FK | Imagens e arquivos carregados (armazenados em S3/MinIO, URL no DB). |
 
@@ -57,8 +58,42 @@ graph TD
         S --> SA(StepAsset)
     end
     
-    SR --> AC
-    SR --> R
-    SR --> EV
-    SR --> CI
+    SR --> AC(Account)
+    SR --> R(Repository)
+    SR --> EV(EnvironmentVariable)
+    SR --> CI(ConfigurationItem)
+    SR --> DPL(Deploy)
+    SR --> DB(Database)
+    SR --> LK(Link)
     SA --> AS(Asset)
+
+---
+
+## 5. Exemplos de Uso: Deploy nos Processos
+
+O modelo `Deploy` permite documentar e referenciar ambientes de deploy em Processos de Implantação.
+
+### Exemplo: Processo "Deploy na Produção"
+
+1. **Processo:** "Deploy na Produção"
+   - **Categoria:** Deploy
+   - **Descrição:** Guia passo a passo para colocar mudanças em produção
+
+2. **Steps:**
+   - Step 1: "Validar código e testes"
+   - Step 2: "Conectar ao servidor AWS Production"
+     - **StepRelationship:** Vincula ao Deploy `Deploy AWS Production`
+     - **StepRelationship:** Vincula à Credencial `AWS Production Account`
+   - Step 3: "Executar scripts de migração"
+     - **StepRelationship:** Vincula ao Database `Production RDS`
+   - Step 4: "Verificar status da aplicação"
+     - **StepRelationship:** Vincula ao Link `Monitoring Dashboard`
+
+### Tipos de Deploy Suportados
+
+- **AWS:** EC2, ECS, Lambda, AppRunner
+- **Google Cloud:** Compute Engine, Cloud Run, App Engine
+- **Azure:** Virtual Machines, App Service, Container Instances
+- **Local VM:** Servidores on-premise
+- **Kubernetes:** Clusters gerenciados ou selfhosted
+
