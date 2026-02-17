@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../database/entities/user.entity';
 import { Repository } from 'typeorm';
 import { RegisterDto } from '../auth/dto/register.dto';
+import { getNameByLevel } from '../enums/role.enum';
 
 @Injectable()
 export class UsersService {
@@ -47,8 +48,12 @@ export class UsersService {
     return user;
   }
 
-  async findAll(): Promise<User[]> {
-    return this.userRepository.find({ relations: ['department', 'team'] });
+  async findAll(): Promise<any[]> {
+    const users = await this.userRepository.find({ relations: ['department', 'team'] });
+    return users.map(user => ({
+      ...user,
+      roleName: getNameByLevel(user.roleLevel),
+    }));
   }
 
   async remove(id: number): Promise<void> {
@@ -56,5 +61,23 @@ export class UsersService {
     if (result.affected === 0) {
       throw new NotFoundException(`User com ID ${id} não encontrado.`);
     }
+  }
+
+  async updateUser(id: number, updateData: Partial<RegisterDto>): Promise<User> {
+    const user = await this.findById(id, false);
+    
+    const { departmentId, teamId, ...updateFields } = updateData;
+    
+    if (departmentId) {
+      user.department = { id: departmentId } as any;
+    }
+    
+    if (teamId) {
+      user.team = { id: teamId } as any;
+    }
+    
+    Object.assign(user, updateFields);
+    
+    return this.userRepository.save(user);
   }
 }
