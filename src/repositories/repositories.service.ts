@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Repository as RepositoryEntity } from '../database/entities/repository.entity';
 import { CreateRepositoryDto } from './dto/create-repository.dto';
 import { UpdateRepositoryDto } from './dto/update-repository.dto';
+import { getLevelByName } from '../enums/role.enum';
 
 @Injectable()
 export class RepositoriesService {
@@ -19,11 +20,26 @@ export class RepositoriesService {
     return this.repositoriesRepository.save(repository);
   }
 
-  async findAll(userLevel: number): Promise<RepositoryEntity[]> {
-    return this.repositoriesRepository
+  async findAll(
+    userLevel: number,
+    roleName: string,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<RepositoryEntity[]> {
+    const isAdmin = getLevelByName('Admin') === userLevel;
+
+    const query = this.repositoriesRepository
       .createQueryBuilder('repo')
-      .where('repo.required_level <= :userLevel', { userLevel })
-      .getMany();
+      .where('repo.required_level <= :userLevel', { userLevel });
+
+    if (!isAdmin && userDepartmentId && userTeamId) {
+      query.andWhere(
+        '(repo.department_id = :deptId AND repo.team_id = :teamId)',
+        { deptId: userDepartmentId, teamId: userTeamId },
+      );
+    }
+
+    return query.getMany();
   }
 
   async findOne(id: string): Promise<RepositoryEntity> {
