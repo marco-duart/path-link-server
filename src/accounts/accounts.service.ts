@@ -5,6 +5,7 @@ import { Account } from '../database/entities/account.entity';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
 import * as crypto from 'crypto';
+import { getLevelByName } from '../enums/role.enum';
 
 @Injectable()
 export class AccountsService {
@@ -70,10 +71,26 @@ export class AccountsService {
     return this.accountsRepository.save(account);
   }
 
-  async findAll(userLevel: number): Promise<Account[]> {
-    const accounts = await this.accountsRepository.find({
-      where: { requiredLevel: userLevel },
-    });
+  async findAll(
+    userLevel: number,
+    roleName: string,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Account[]> {
+    const isAdmin = getLevelByName('Admin') === userLevel;
+
+    const query = this.accountsRepository
+      .createQueryBuilder('account')
+      .where('account.required_level <= :userLevel', { userLevel });
+
+    if (!isAdmin && userDepartmentId && userTeamId) {
+      query.andWhere(
+        '(account.department_id = :deptId AND account.team_id = :teamId)',
+        { deptId: userDepartmentId, teamId: userTeamId },
+      );
+    }
+
+    const accounts = await query.getMany();
 
     return accounts.map((a) => {
       if (a.passwordEncrypted) {
@@ -114,7 +131,15 @@ export class AccountsService {
     }
 
     await this.accountsRepository.update(id, updateData);
-    return this.accountsRepository.findOneOrFail({ where: { id } });
+    const updated = await this.accountsRepository.findOneOrFail({
+      where: { id },
+    });
+
+    if (updated.passwordEncrypted) {
+      updated.passwordEncrypted = this.decrypt(updated.passwordEncrypted);
+    }
+
+    return updated;
   }
 
   async remove(id: string): Promise<void> {

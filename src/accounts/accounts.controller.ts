@@ -36,7 +36,12 @@ export class AccountsController {
   @Get()
   async findAll(@CurrentUser() user: JwtPayload): Promise<Account[]> {
     const userLevel = getLevelByName(user.roleName);
-    return this.accountsService.findAll(userLevel);
+    return this.accountsService.findAll(
+      userLevel,
+      user.roleName,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @Get(':id')
