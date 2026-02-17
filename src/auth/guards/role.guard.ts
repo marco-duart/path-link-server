@@ -8,10 +8,10 @@ export class RoleGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<RoleNames[]>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const requiredRoles = this.reflector.getAllAndOverride<RoleNames[]>(
+      ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
     if (!requiredRoles || requiredRoles.length === 0) {
       return true;
@@ -21,9 +21,9 @@ export class RoleGuard implements CanActivate {
     const { user } = request;
 
     const requiredLevels = requiredRoles.map((role) => getLevelByName(role));
-    
+
     const minRequiredLevel = Math.min(...requiredLevels);
-    
+
     return user.roleLevel >= minRequiredLevel;
   }
 }

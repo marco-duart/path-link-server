@@ -5,6 +5,7 @@ export interface JwtPayload {
   email: string;
   user: number;
   roleName: keyof typeof RoleHierarchy;
-  department: string;
-  team: string;
+  roleLevel?: number;
+  departmentId?: string;
+  teamId?: number;
 }
