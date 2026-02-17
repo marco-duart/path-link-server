@@ -10,6 +10,7 @@ import {
   Body,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -24,6 +25,7 @@ import {
 import { getLevelByName } from '../enums/role.enum';
 import * as path from 'path';
 import { Roles } from '../decorators/roles.decorator';
+import { JwtPayload } from '../auth/jwt/dto/jwt-payload.dto';
 
 const multerOptions = {
   storage: diskStorage({
@@ -39,6 +41,8 @@ const multerOptions = {
 @UseGuards(AuthGuard)
 @Controller('assets')
 export class AssetsController {
+  private readonly logger = new Logger(AssetsController.name);
+
   constructor(private readonly assetsService: AssetsService) {}
 
   @Post('upload')
@@ -50,20 +54,33 @@ export class AssetsController {
     @Body() metadata: AssetMetadataDto,
     @CurrentUser('user') uploadedById: number,
   ) {
+    this.logger.log(
+      `[POST /assets/upload] Arquivo: ${file?.originalname}, Metadados recebidos: ${JSON.stringify(metadata)}, Tipo requiredLevel: ${typeof metadata?.requiredLevel}, UserId: ${uploadedById}`,
+    );
+
     if (!file) {
+      this.logger.error(`[POST /assets/upload] Nenhum arquivo fornecido`);
       throw new HttpException(
         'Nenhum arquivo enviado.',
         HttpStatus.BAD_REQUEST,
       );
     }
 
+    this.logger.log(
+      `[POST /assets/upload] Metadados validados: requiredLevel=${metadata?.requiredLevel}`,
+    );
     return this.assetsService.create(file, metadata, uploadedById);
   }
 
   @Get()
-  findAll(@CurrentUser('roleName') roleName: string) {
-    const userLevel = getLevelByName(roleName);
-    return this.assetsService.findAll(userLevel);
+  findAll(@CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.assetsService.findAll(
+      userLevel,
+      user.roleName,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @Get(':id')

@@ -1,4 +1,5 @@
 import { IsNumber, IsOptional, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export interface UploadedFile {
   fieldname: string;
@@ -12,7 +13,7 @@ export interface UploadedFile {
 }
 
 export class AssetMetadataDto {
-  @IsNumber()
+  @Type(() => Number)
   @IsOptional()
   @Min(10)
   requiredLevel?: number;
