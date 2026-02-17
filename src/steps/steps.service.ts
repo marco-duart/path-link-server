@@ -75,7 +75,10 @@ export class StepsService {
     updateStepDto: UpdateStepDto,
     userLevel: number,
   ): Promise<Step> {
-    const step = await this.stepsRepository.findOne({ where: { id } });
+    const step = await this.stepsRepository.findOne({
+      where: { id },
+      relations: ['process'],
+    });
 
     if (!step) {
       throw new NotFoundException(`Step com ID ${id} não encontrado.`);
