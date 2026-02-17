@@ -41,6 +41,13 @@ export class TeamsService {
     return this.teamsRepository.find({ relations: ['department', 'users'] });
   }
 
+  async findByDepartment(departmentId: string): Promise<Team[]> {
+    return this.teamsRepository.find({
+      where: { department: { id: departmentId } },
+      relations: ['department', 'users'],
+    });
+  }
+
   async findOne(id: number): Promise<Team> {
     const team = await this.teamsRepository.findOne({
       where: { id },

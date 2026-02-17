@@ -33,6 +33,11 @@ export class TeamsController {
     return this.teamsService.findAll();
   }
 
+  @Get('department/:departmentId')
+  findByDepartment(@Param('departmentId') departmentId: string) {
+    return this.teamsService.findByDepartment(departmentId);
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.teamsService.findOne(id);
