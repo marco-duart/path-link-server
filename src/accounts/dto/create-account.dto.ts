@@ -5,7 +5,9 @@ import {
   IsOptional,
   IsNumber,
   Min,
+  IsUUID,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { RoleHierarchy } from 'src/enums/role.enum';
 
 export class CreateAccountDto {
@@ -32,6 +34,11 @@ export class CreateAccountDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @Transform(({ value }) => (value === '' ? null : value))
+  @IsOptional()
+  @IsUUID()
+  twoFactorQrAssetId?: string | null;
 
   @IsNumber()
   @IsNotEmpty()
