@@ -46,6 +46,10 @@ lerna-debug.log*
 .temp
 .tmp
 
+# local assets files
+/uploads/*
+!/uploads/.keep
+
 # Runtime data
 pids
 *.pid
