@@ -58,8 +58,25 @@ export class AccountsService {
     }
   }
 
+  private mapAccountDtoToEntityData(
+    dto: CreateAccountDto | UpdateAccountDto,
+  ): Partial<Account> {
+    const { twoFactorQrAssetId, ...rest } = dto as CreateAccountDto &
+      UpdateAccountDto;
+
+    const entityData: Partial<Account> = { ...rest };
+
+    if (twoFactorQrAssetId !== undefined) {
+      entityData.twoFactorQrAsset = twoFactorQrAssetId
+        ? ({ id: twoFactorQrAssetId } as any)
+        : null;
+    }
+
+    return entityData;
+  }
+
   async create(createAccountDto: CreateAccountDto): Promise<Account> {
-    const accountData = { ...createAccountDto };
+    const accountData = this.mapAccountDtoToEntityData(createAccountDto);
 
     if (accountData.passwordEncrypted) {
       accountData.passwordEncrypted = this.encrypt(
@@ -81,7 +98,8 @@ export class AccountsService {
 
     const query = this.accountsRepository
       .createQueryBuilder('account')
-      .where('account.required_level <= :userLevel', { userLevel });
+      .where('account.required_level <= :userLevel', { userLevel })
+      .leftJoinAndSelect('account.twoFactorQrAsset', 'twoFactorQrAsset');
 
     if (!isAdmin && userDepartmentId && userTeamId) {
       query.andWhere(
@@ -101,7 +119,10 @@ export class AccountsService {
   }
 
   async findOne(id: string): Promise<Account> {
-    const account = await this.accountsRepository.findOne({ where: { id } });
+    const account = await this.accountsRepository.findOne({
+      where: { id },
+      relations: ['twoFactorQrAsset'],
+    });
 
     if (!account) {
       throw new NotFoundException(`Account with ID ${id} not found.`);
@@ -124,7 +145,7 @@ export class AccountsService {
       throw new NotFoundException(`Account with ID ${id} not found.`);
     }
 
-    const updateData = { ...updateAccountDto };
+    const updateData = this.mapAccountDtoToEntityData(updateAccountDto);
 
     if (updateData.passwordEncrypted) {
       updateData.passwordEncrypted = this.encrypt(updateData.passwordEncrypted);
@@ -133,6 +154,7 @@ export class AccountsService {
     await this.accountsRepository.update(id, updateData);
     const updated = await this.accountsRepository.findOneOrFail({
       where: { id },
+      relations: ['twoFactorQrAsset'],
     });
 
     if (updated.passwordEncrypted) {
