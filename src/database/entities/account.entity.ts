@@ -1,6 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Department } from './department.entity';
 import { Team } from './team.entity';
+import { Asset } from './asset.entity';
 
 @Entity('accounts')
 export class Account {
@@ -32,6 +39,10 @@ export class Account {
   @ManyToOne(() => Team, { nullable: true })
   @JoinColumn({ name: 'team_id' })
   team: Team;
+
+  @ManyToOne(() => Asset, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'two_factor_qr_asset_id' })
+  twoFactorQrAsset: Asset;
 
   @Column({
     type: 'integer',
