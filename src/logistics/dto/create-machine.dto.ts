@@ -1,6 +1,6 @@
 import {
-  IsBoolean,
   IsIn,
+  IsIP,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -26,10 +26,6 @@ export class CreateMachineDto {
   @IsNotEmpty()
   assetTag: string;
 
-  @IsBoolean()
-  @IsOptional()
-  isPda?: boolean;
-
   @IsString()
   @IsOptional()
   deviceType?: string;
@@ -37,6 +33,10 @@ export class CreateMachineDto {
   @IsString()
   @IsOptional()
   assignee?: string;
+
+  @IsIP()
+  @IsOptional()
+  ip?: string;
 
   @IsString()
   @IsOptional()

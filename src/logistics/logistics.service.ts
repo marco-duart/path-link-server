@@ -50,7 +50,7 @@ export class LogisticsService {
     );
 
     if (!machineData.deviceType) {
-      machineData.deviceType = machineData.isPda ? 'pda' : 'other';
+      machineData.deviceType = 'other';
     }
 
     if (!machineData.status) {
@@ -95,7 +95,7 @@ export class LogisticsService {
 
     if (queryDto.search) {
       query.andWhere(
-        '(machine.asset_tag ILIKE :search OR machine.assignee ILIKE :search OR machine.cpu ILIKE :search OR machine.room ILIKE :search)',
+        '(machine.asset_tag ILIKE :search OR machine.assignee ILIKE :search OR machine.cpu ILIKE :search OR machine.room ILIKE :search OR machine.ip ILIKE :search)',
         { search: `%${queryDto.search}%` },
       );
     }
@@ -104,8 +104,8 @@ export class LogisticsService {
       query.andWhere('machine.status = :status', { status: queryDto.status });
     }
 
-    if (queryDto.isPda !== undefined) {
-      query.andWhere('machine.is_pda = :isPda', { isPda: queryDto.isPda });
+    if (queryDto.ip) {
+      query.andWhere('machine.ip ILIKE :ip', { ip: `%${queryDto.ip}%` });
     }
 
     if (queryDto.deviceType) {

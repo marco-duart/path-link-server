@@ -1,9 +1,4 @@
 import { SelectQueryBuilder } from 'typeorm';
-import { getLevelByName } from '../../enums/role.enum';
-
-export function isAdminUser(userLevel: number): boolean {
-  return getLevelByName('Admin') === userLevel;
-}
 
 export function applyResourceScope(
   query: SelectQueryBuilder<any>,
@@ -12,9 +7,7 @@ export function applyResourceScope(
   userDepartmentId?: string,
   userTeamId?: number,
 ) {
-  if (isAdminUser(userLevel)) {
-    return query;
-  }
+  void userLevel;
 
   if (!userDepartmentId || !userTeamId) {
     return query.andWhere('1 = 0');

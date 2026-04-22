@@ -14,7 +14,7 @@ export class CreateSoftwareDto {
   @IsNotEmpty()
   name: string;
 
-  @IsUrl()
+  @IsUrl({ require_tld: false })
   @IsNotEmpty()
   downloadUrl: string;
 

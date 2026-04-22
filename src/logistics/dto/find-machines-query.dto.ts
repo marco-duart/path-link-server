@@ -21,9 +21,8 @@ export class FindMachinesQueryDto {
   status?: (typeof MACHINE_STATUSES)[number];
 
   @IsOptional()
-  @Type(() => Boolean)
-  @IsBoolean()
-  isPda?: boolean;
+  @IsString()
+  ip?: string;
 
   @IsOptional()
   @IsString()

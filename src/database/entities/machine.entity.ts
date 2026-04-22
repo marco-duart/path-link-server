@@ -18,14 +18,14 @@ export class Machine {
   @Column({ type: 'varchar', length: 100, unique: true, name: 'asset_tag' })
   assetTag: string;
 
-  @Column({ type: 'boolean', default: false, name: 'is_pda' })
-  isPda: boolean;
-
   @Column({ type: 'varchar', length: 50, default: 'other', name: 'device_type' })
   deviceType: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   assignee: string;
+
+  @Column({ type: 'varchar', length: 45, nullable: true })
+  ip: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   cpu: string;
