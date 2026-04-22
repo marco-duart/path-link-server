@@ -7,8 +7,6 @@ import {
   Param,
   Delete,
   UseGuards,
-  HttpException,
-  HttpStatus,
 } from '@nestjs/common';
 import { ConfigurationItemsService } from './configuration-items.service';
 import { CreateConfigurationItemDto } from './dto/create-configuration-item.dto';
@@ -28,8 +26,15 @@ export class ConfigurationItemsController {
   @UseGuards(RoleGuard)
   @Roles('Analista')
   @Post()
-  create(@Body() createConfigItemDto: CreateConfigurationItemDto) {
-    return this.configItemsService.create(createConfigItemDto);
+  create(
+    @Body() createConfigItemDto: CreateConfigurationItemDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.configItemsService.create(
+      createConfigItemDto,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @Get()
@@ -37,27 +42,20 @@ export class ConfigurationItemsController {
     const userLevel = getLevelByName(user.roleName);
     return this.configItemsService.findAll(
       userLevel,
-      user.roleName,
       user.departmentId,
       user.teamId,
     );
   }
 
   @Get(':id')
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser('roleName') roleName: string,
-  ) {
-    const configItem = await this.configItemsService.findOne(id);
-    const userLevel = getLevelByName(roleName);
-
-    if (userLevel < configItem.requiredLevel) {
-      throw new HttpException(
-        'Acesso negado. Nível de Role insuficiente para visualizar este Configuration Item.',
-        HttpStatus.FORBIDDEN,
-      );
-    }
-    return configItem;
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.configItemsService.findOne(
+      id,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @UseGuards(RoleGuard)
@@ -66,14 +64,28 @@ export class ConfigurationItemsController {
   update(
     @Param('id') id: string,
     @Body() updateConfigItemDto: UpdateConfigurationItemDto,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.configItemsService.update(id, updateConfigItemDto);
+    const userLevel = getLevelByName(user.roleName);
+    return this.configItemsService.update(
+      id,
+      updateConfigItemDto,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @UseGuards(RoleGuard)
   @Roles('Gerente')
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.configItemsService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.configItemsService.remove(
+      id,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 }

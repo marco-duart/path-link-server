@@ -4,7 +4,10 @@ import { Repository } from 'typeorm';
 import { Link } from '../database/entities/link.entity';
 import { CreateLinkDto } from './dto/create-link.dto';
 import { UpdateLinkDto } from './dto/update-link.dto';
-import { getLevelByName } from '../enums/role.enum';
+import {
+  applyResourceScope,
+  withUserOwnership,
+} from '../common/utils/resource-scope';
 
 @Injectable()
 export class LinksService {
@@ -13,35 +16,63 @@ export class LinksService {
     private linksRepository: Repository<Link>,
   ) {}
 
-  async create(createLinkDto: CreateLinkDto): Promise<Link> {
-    const link = this.linksRepository.create(createLinkDto);
+  async create(
+    createLinkDto: CreateLinkDto,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Link> {
+    const linkData = withUserOwnership(
+      { ...createLinkDto },
+      userDepartmentId,
+      userTeamId,
+    );
+    const link = this.linksRepository.create(linkData);
     return this.linksRepository.save(link);
   }
 
-  async findAll(
+  private buildScopedQuery(
     userLevel: number,
-    roleName: string,
     userDepartmentId?: string,
     userTeamId?: number,
-  ): Promise<Link[]> {
-    const isAdmin = getLevelByName('Admin') === userLevel;
-
+  ) {
     const query = this.linksRepository
       .createQueryBuilder('link')
       .where('link.required_level <= :userLevel', { userLevel });
 
-    if (!isAdmin && userDepartmentId && userTeamId) {
-      query.andWhere(
-        '(link.department_id = :deptId AND link.team_id = :teamId)',
-        { deptId: userDepartmentId, teamId: userTeamId },
-      );
-    }
-
-    return query.getMany();
+    return applyResourceScope(
+      query,
+      'link',
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    );
   }
 
-  async findOne(id: string): Promise<Link> {
-    const link = await this.linksRepository.findOne({ where: { id } });
+  async findAll(
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Link[]> {
+    return this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    ).getMany();
+  }
+
+  async findOne(
+    id: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Link> {
+    const link = await this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    )
+      .andWhere('link.id = :id', { id })
+      .getOne();
 
     if (!link) {
       throw new NotFoundException(`Link com ID ${id} não encontrado.`);
@@ -50,18 +81,30 @@ export class LinksService {
     return link;
   }
 
-  async update(id: string, updateLinkDto: UpdateLinkDto): Promise<Link> {
-    const link = await this.linksRepository.findOne({ where: { id } });
-
-    if (!link) {
-      throw new NotFoundException(`Link com ID ${id} não encontrado.`);
-    }
-
-    await this.linksRepository.update(id, updateLinkDto);
-    return this.linksRepository.findOneOrFail({ where: { id } });
+  async update(
+    id: string,
+    updateLinkDto: UpdateLinkDto,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Link> {
+    await this.findOne(id, userLevel, userDepartmentId, userTeamId);
+    const updateData = withUserOwnership(
+      { ...updateLinkDto },
+      userDepartmentId,
+      userTeamId,
+    );
+    await this.linksRepository.update(id, updateData);
+    return this.findOne(id, userLevel, userDepartmentId, userTeamId);
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(
+    id: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<void> {
+    await this.findOne(id, userLevel, userDepartmentId, userTeamId);
     const result = await this.linksRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Link com ID ${id} não encontrado.`);

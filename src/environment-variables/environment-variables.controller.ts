@@ -7,8 +7,6 @@ import {
   Param,
   Delete,
   UseGuards,
-  HttpException,
-  HttpStatus,
 } from '@nestjs/common';
 import { EnvironmentVariablesService } from './environment-variables.service';
 import { CreateEnvironmentVariableDto } from './dto/create-environment-variable.dto';
@@ -28,8 +26,15 @@ export class EnvironmentVariablesController {
   @UseGuards(RoleGuard)
   @Roles('Analista')
   @Post()
-  create(@Body() createEnvVarDto: CreateEnvironmentVariableDto) {
-    return this.envVarService.create(createEnvVarDto);
+  create(
+    @Body() createEnvVarDto: CreateEnvironmentVariableDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.envVarService.create(
+      createEnvVarDto,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @Get()
@@ -37,27 +42,20 @@ export class EnvironmentVariablesController {
     const userLevel = getLevelByName(user.roleName);
     return this.envVarService.findAll(
       userLevel,
-      user.roleName,
       user.departmentId,
       user.teamId,
     );
   }
 
   @Get(':id')
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser('roleName') roleName: string,
-  ) {
-    const envVar = await this.envVarService.findOne(id);
-    const userLevel = getLevelByName(roleName);
-
-    if (userLevel < envVar.requiredLevel) {
-      throw new HttpException(
-        'Acesso negado. Nível de Role insuficiente para visualizar esta Variável de Ambiente.',
-        HttpStatus.FORBIDDEN,
-      );
-    }
-    return envVar;
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.envVarService.findOne(
+      id,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @UseGuards(RoleGuard)
@@ -66,14 +64,28 @@ export class EnvironmentVariablesController {
   update(
     @Param('id') id: string,
     @Body() updateEnvVarDto: UpdateEnvironmentVariableDto,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.envVarService.update(id, updateEnvVarDto);
+    const userLevel = getLevelByName(user.roleName);
+    return this.envVarService.update(
+      id,
+      updateEnvVarDto,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @UseGuards(RoleGuard)
   @Roles('Gerente')
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.envVarService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.envVarService.remove(
+      id,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 }

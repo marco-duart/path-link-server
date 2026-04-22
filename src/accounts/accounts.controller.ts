@@ -7,8 +7,6 @@ import {
   Param,
   Delete,
   UseGuards,
-  HttpException,
-  HttpStatus,
 } from '@nestjs/common';
 import { AccountsService } from './accounts.service';
 import { CreateAccountDto } from './dto/create-account.dto';
@@ -29,8 +27,12 @@ export class AccountsController {
   @Post()
   @UseGuards(RoleGuard)
   @Roles('Coordenador')
-  create(@Body() createAccountDto: CreateAccountDto) {
-    return this.accountsService.create(createAccountDto);
+  create(@Body() createAccountDto: CreateAccountDto, @CurrentUser() user: JwtPayload) {
+    return this.accountsService.create(
+      createAccountDto,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @Get()
@@ -38,7 +40,6 @@ export class AccountsController {
     const userLevel = getLevelByName(user.roleName);
     return this.accountsService.findAll(
       userLevel,
-      user.roleName,
       user.departmentId,
       user.teamId,
     );
@@ -49,18 +50,13 @@ export class AccountsController {
     @Param('id') id: string,
     @CurrentUser() user: JwtPayload,
   ): Promise<Account> {
-    const account = await this.accountsService.findOne(id);
-
     const userLevel = getLevelByName(user.roleName);
-
-    if (userLevel < account.requiredLevel) {
-      throw new HttpException(
-        'Acesso negado. Nível de Role insuficiente para visualizar esta conta.',
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    return account;
+    return this.accountsService.findOne(
+      id,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @Patch(':id')
@@ -71,18 +67,14 @@ export class AccountsController {
     @Body() updateAccountDto: UpdateAccountDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    const account = await this.accountsService.findOne(id);
     const userLevel = getLevelByName(user.roleName);
-    const requiredAdminLevel = getLevelByName('Admin');
-
-    if (userLevel < account.requiredLevel && userLevel < requiredAdminLevel) {
-      throw new HttpException(
-        'Acesso negado. Você não tem permissão para editar esta conta.',
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    return this.accountsService.update(id, updateAccountDto);
+    return this.accountsService.update(
+      id,
+      updateAccountDto,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @Delete(':id')
@@ -90,15 +82,11 @@ export class AccountsController {
   @Roles('Coordenador')
   async remove(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     const userLevel = getLevelByName(user.roleName);
-    const requiredLevelForDelete = getLevelByName('Coordenador');
-
-    if (userLevel < requiredLevelForDelete) {
-      throw new HttpException(
-        'Acesso negado. Apenas Coordenadores ou superiores podem deletar contas.',
-        HttpStatus.FORBIDDEN,
-      );
-    }
-
-    return this.accountsService.remove(id);
+    return this.accountsService.remove(
+      id,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 }

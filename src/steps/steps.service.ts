@@ -24,7 +24,7 @@ export class StepsService {
     processId: string,
     userLevel: number,
   ): Promise<Process> {
-    const process = await this.processesService.findOne(processId);
+    const process = await this.processesService.findOneInternal(processId);
     const requiredEditLevel = RoleHierarchy.Analista;
 
     if (userLevel < requiredEditLevel || userLevel < process.requiredLevel) {

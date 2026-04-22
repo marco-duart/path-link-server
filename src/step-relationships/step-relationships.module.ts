@@ -12,6 +12,7 @@ import { EnvironmentVariablesModule } from '../environment-variables/environment
 import { LinksModule } from '../links/links.module';
 import { RepositoriesModule } from '../repositories/repositories.module';
 import { AuthModule } from '../auth/auth.module';
+import { SoftwaresModule } from '../softwares/softwares.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AuthModule } from '../auth/auth.module';
     EnvironmentVariablesModule,
     LinksModule,
     RepositoriesModule,
+    SoftwaresModule,
     AuthModule,
   ],
   controllers: [StepRelationshipsController],

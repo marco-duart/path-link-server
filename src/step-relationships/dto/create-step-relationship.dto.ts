@@ -15,6 +15,7 @@ export const RELATABLE_MODELS = [
   'EnvironmentVariable',
   'Link',
   'Repository',
+  'Software',
 ] as const;
 export type RelatableModel = (typeof RELATABLE_MODELS)[number];
 

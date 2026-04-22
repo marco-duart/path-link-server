@@ -7,8 +7,6 @@ import {
   Param,
   Delete,
   UseGuards,
-  HttpException,
-  HttpStatus,
 } from '@nestjs/common';
 import { ProcessesService } from './processes.service';
 import { CreateProcessDto } from './dto/create-process.dto';
@@ -31,8 +29,14 @@ export class ProcessesController {
   create(
     @Body() createProcessDto: CreateProcessDto,
     @CurrentUser('user') createdById: number,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.processesService.create(createProcessDto, createdById);
+    return this.processesService.create(
+      createProcessDto,
+      createdById,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @Get()
@@ -40,40 +44,50 @@ export class ProcessesController {
     const userLevel = getLevelByName(user.roleName);
     return this.processesService.findAll(
       userLevel,
-      user.roleName,
       user.departmentId,
       user.teamId,
     );
   }
 
   @Get(':id')
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser('roleName') roleName: string,
-  ) {
-    const process = await this.processesService.findOne(id);
-    const userLevel = getLevelByName(roleName);
-
-    if (userLevel < process.requiredLevel) {
-      throw new HttpException(
-        'Acesso negado. Nível de Role insuficiente para visualizar este Processo.',
-        HttpStatus.FORBIDDEN,
-      );
-    }
-    return process;
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.processesService.findOne(
+      id,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @UseGuards(RoleGuard)
   @Roles('Coordenador')
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateProcessDto: UpdateProcessDto) {
-    return this.processesService.update(id, updateProcessDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateProcessDto: UpdateProcessDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.processesService.update(
+      id,
+      updateProcessDto,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @UseGuards(RoleGuard)
   @Roles('Gerente')
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.processesService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.processesService.remove(
+      id,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 }

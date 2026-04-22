@@ -4,7 +4,10 @@ import { Repository } from 'typeorm';
 import { Deploy } from '../database/entities/deploy.entity';
 import { CreateDeployDto } from './dto/create-deploy.dto';
 import { UpdateDeployDto } from './dto/update-deploy.dto';
-import { getLevelByName } from '../enums/role.enum';
+import {
+  applyResourceScope,
+  withUserOwnership,
+} from '../common/utils/resource-scope';
 
 @Injectable()
 export class DeploysService {
@@ -13,19 +16,41 @@ export class DeploysService {
     private deploysRepository: Repository<Deploy>,
   ) {}
 
-  async create(createDeployDto: CreateDeployDto): Promise<Deploy> {
-    const deploy = this.deploysRepository.create(createDeployDto);
+  private mapDeployDtoToEntityData(
+    dto: CreateDeployDto | UpdateDeployDto,
+  ): Partial<Deploy> {
+    const { credentialsId, ...rest } = dto as CreateDeployDto & UpdateDeployDto;
+
+    const entityData: Partial<Deploy> = { ...rest };
+
+    if (credentialsId !== undefined) {
+      entityData.credentials = credentialsId
+        ? ({ id: credentialsId } as any)
+        : null;
+    }
+
+    return entityData;
+  }
+
+  async create(
+    createDeployDto: CreateDeployDto,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Deploy> {
+    const deployData = withUserOwnership(
+      this.mapDeployDtoToEntityData(createDeployDto),
+      userDepartmentId,
+      userTeamId,
+    );
+    const deploy = this.deploysRepository.create(deployData);
     return this.deploysRepository.save(deploy);
   }
 
-  async findAll(
+  private buildScopedQuery(
     userLevel: number,
-    userRoleName: string,
     userDepartmentId?: string,
     userTeamId?: number,
-  ): Promise<Deploy[]> {
-    const isAdmin = getLevelByName('Admin') === userLevel;
-
+  ) {
     const query = this.deploysRepository
       .createQueryBuilder('deploy')
       .leftJoinAndSelect('deploy.credentials', 'credentials')
@@ -33,21 +58,40 @@ export class DeploysService {
       .leftJoinAndSelect('deploy.team', 'team')
       .where('deploy.required_level <= :userLevel', { userLevel });
 
-    if (!isAdmin && userDepartmentId && userTeamId) {
-      query.andWhere(
-        '(deploy.department_id = :deptId AND deploy.team_id = :teamId)',
-        { deptId: userDepartmentId, teamId: userTeamId },
-      );
-    }
-
-    return query.getMany();
+    return applyResourceScope(
+      query,
+      'deploy',
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    );
   }
 
-  async findOne(id: string): Promise<Deploy> {
-    const deploy = await this.deploysRepository.findOne({
-      where: { id },
-      relations: ['credentials', 'department', 'team'],
-    });
+  async findAll(
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Deploy[]> {
+    return this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    ).getMany();
+  }
+
+  async findOne(
+    id: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Deploy> {
+    const deploy = await this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    )
+      .andWhere('deploy.id = :id', { id })
+      .getOne();
 
     if (!deploy) {
       throw new NotFoundException(`Deploy com ID ${id} não encontrado.`);
@@ -56,28 +100,60 @@ export class DeploysService {
     return deploy;
   }
 
-  async update(id: string, updateDeployDto: UpdateDeployDto): Promise<Deploy> {
-    await this.findOne(id);
-    await this.deploysRepository.update(id, updateDeployDto);
-    return this.findOne(id);
+  async update(
+    id: string,
+    updateDeployDto: UpdateDeployDto,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Deploy> {
+    await this.findOne(id, userLevel, userDepartmentId, userTeamId);
+    const updateData = withUserOwnership(
+      this.mapDeployDtoToEntityData(updateDeployDto),
+      userDepartmentId,
+      userTeamId,
+    );
+    await this.deploysRepository.update(id, updateData);
+    return this.findOne(id, userLevel, userDepartmentId, userTeamId);
   }
 
-  async remove(id: string): Promise<void> {
-    const deploy = await this.findOne(id);
+  async remove(
+    id: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<void> {
+    const deploy = await this.findOne(id, userLevel, userDepartmentId, userTeamId);
     await this.deploysRepository.remove(deploy);
   }
 
-  async findByType(type: string): Promise<Deploy[]> {
-    return this.deploysRepository.find({
-      where: { type },
-      relations: ['credentials', 'department', 'team'],
-    });
+  async findByType(
+    type: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Deploy[]> {
+    return this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    )
+      .andWhere('deploy.type = :type', { type })
+      .getMany();
   }
 
-  async findByEnvironment(environment: string): Promise<Deploy[]> {
-    return this.deploysRepository.find({
-      where: { environment },
-      relations: ['credentials', 'department', 'team'],
-    });
+  async findByEnvironment(
+    environment: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Deploy[]> {
+    return this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    )
+      .andWhere('deploy.environment = :environment', { environment })
+      .getMany();
   }
 }

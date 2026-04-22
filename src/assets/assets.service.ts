@@ -8,10 +8,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Asset } from '../database/entities/asset.entity';
 import { UploadedFile, AssetMetadataDto } from './dto/asset-metadata.dto';
-import { RoleHierarchy, getLevelByName } from '../enums/role.enum';
+import { RoleHierarchy } from '../enums/role.enum';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { UsersService } from '../users/users.service';
+import {
+  applyResourceScope,
+  withUserOwnership,
+} from '../common/utils/resource-scope';
 
 @Injectable()
 export class AssetsService {
@@ -32,6 +36,7 @@ export class AssetsService {
     );
 
     try {
+      const uploadedByUser = await this.usersService.findById(uploadedById);
       const userReference = this.usersService.getUserReference(uploadedById);
       this.logger.log(`[create] User reference obtida: ${userReference.id}`);
 
@@ -40,13 +45,19 @@ export class AssetsService {
 
       const requiredLevel = metadata?.requiredLevel || RoleHierarchy.Auxiliar;
 
-      const assetData = this.assetsRepository.create({
-        filename: file.originalname,
-        url: fileUrl,
-        mimeType: file.mimetype,
-        uploadedBy: userReference,
-        requiredLevel,
-      });
+      const assetData = this.assetsRepository.create(
+        withUserOwnership(
+          {
+            filename: file.originalname,
+            url: fileUrl,
+            mimeType: file.mimetype,
+            uploadedBy: userReference,
+            requiredLevel,
+          },
+          uploadedByUser.department?.id,
+          uploadedByUser.team?.id,
+        ),
+      );
 
       this.logger.log(
         `[create] Dados a serem salvos no BD: { id: será gerado, filename: "${assetData.filename}", url: "${assetData.url}", mimeType: "${assetData.mimeType}", requiredLevel: ${assetData.requiredLevel} }`,
@@ -72,30 +83,59 @@ export class AssetsService {
     }
   }
 
-  async findAll(
+
+  private buildScopedQuery(
     userLevel: number,
-    roleName: string,
     userDepartmentId?: string,
     userTeamId?: number,
-  ): Promise<Asset[]> {
-    const isAdmin = getLevelByName('Admin') === userLevel;
-
+  ) {
     const query = this.assetsRepository
       .createQueryBuilder('asset')
       .where('asset.required_level <= :userLevel', { userLevel })
       .leftJoinAndSelect('asset.uploadedBy', 'uploadedBy');
 
-    if (!isAdmin && userDepartmentId && userTeamId) {
-      query.andWhere(
-        '(asset.department_id = :deptId AND asset.team_id = :teamId)',
-        { deptId: userDepartmentId, teamId: userTeamId },
-      );
-    }
-
-    return query.getMany();
+    return applyResourceScope(
+      query,
+      'asset',
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    );
   }
 
-  async findOne(id: string): Promise<Asset> {
+  async findAll(
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Asset[]> {
+    return this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    ).getMany();
+  }
+
+  async findOne(
+    id: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Asset> {
+    const asset = await this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    )
+      .andWhere('asset.id = :id', { id })
+      .getOne();
+
+    if (!asset) {
+      throw new NotFoundException(`Asset com ID ${id} não encontrado.`);
+    }
+    return asset;
+  }
+
+  async findOneInternal(id: string): Promise<Asset> {
     const asset = await this.assetsRepository.findOne({
       where: { id },
       relations: ['uploadedBy'],
@@ -104,11 +144,22 @@ export class AssetsService {
     if (!asset) {
       throw new NotFoundException(`Asset com ID ${id} não encontrado.`);
     }
+
     return asset;
   }
 
-  async remove(id: string): Promise<void> {
-    const asset = await this.findOne(id);
+  async remove(
+    id: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<void> {
+    const asset = await this.findOne(
+      id,
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    );
 
     const result = await this.assetsRepository.delete(id);
 

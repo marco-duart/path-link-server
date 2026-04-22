@@ -33,7 +33,7 @@ export class StepAssetsService {
       this.logger.log(`[create] ✅ Step encontrado: ${stepReference.id}`);
 
       this.logger.log(`[create] Buscando Asset: ${createStepAssetDto.assetId}`);
-      const assetReference = await this.assetsService.findOne(
+      const assetReference = await this.assetsService.findOneInternal(
         createStepAssetDto.assetId,
       );
       this.logger.log(

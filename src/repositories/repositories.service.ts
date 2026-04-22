@@ -4,7 +4,10 @@ import { Repository } from 'typeorm';
 import { Repository as RepositoryEntity } from '../database/entities/repository.entity';
 import { CreateRepositoryDto } from './dto/create-repository.dto';
 import { UpdateRepositoryDto } from './dto/update-repository.dto';
-import { getLevelByName } from '../enums/role.enum';
+import {
+  applyResourceScope,
+  withUserOwnership,
+} from '../common/utils/resource-scope';
 
 @Injectable()
 export class RepositoriesService {
@@ -15,37 +18,61 @@ export class RepositoriesService {
 
   async create(
     createRepositoryDto: CreateRepositoryDto,
+    userDepartmentId?: string,
+    userTeamId?: number,
   ): Promise<RepositoryEntity> {
-    const repository = this.repositoriesRepository.create(createRepositoryDto);
+    const repositoryData = withUserOwnership(
+      { ...createRepositoryDto },
+      userDepartmentId,
+      userTeamId,
+    );
+    const repository = this.repositoriesRepository.create(repositoryData);
     return this.repositoriesRepository.save(repository);
   }
 
-  async findAll(
+  private buildScopedQuery(
     userLevel: number,
-    roleName: string,
     userDepartmentId?: string,
     userTeamId?: number,
-  ): Promise<RepositoryEntity[]> {
-    const isAdmin = getLevelByName('Admin') === userLevel;
-
+  ) {
     const query = this.repositoriesRepository
       .createQueryBuilder('repo')
       .where('repo.required_level <= :userLevel', { userLevel });
 
-    if (!isAdmin && userDepartmentId && userTeamId) {
-      query.andWhere(
-        '(repo.department_id = :deptId AND repo.team_id = :teamId)',
-        { deptId: userDepartmentId, teamId: userTeamId },
-      );
-    }
-
-    return query.getMany();
+    return applyResourceScope(
+      query,
+      'repo',
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    );
   }
 
-  async findOne(id: string): Promise<RepositoryEntity> {
-    const repository = await this.repositoriesRepository.findOne({
-      where: { id },
-    });
+  async findAll(
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<RepositoryEntity[]> {
+    return this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    ).getMany();
+  }
+
+  async findOne(
+    id: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<RepositoryEntity> {
+    const repository = await this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    )
+      .andWhere('repo.id = :id', { id })
+      .getOne();
 
     if (!repository) {
       throw new NotFoundException(`Repository com ID ${id} não encontrado.`);
@@ -57,20 +84,27 @@ export class RepositoriesService {
   async update(
     id: string,
     updateRepositoryDto: UpdateRepositoryDto,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
   ): Promise<RepositoryEntity> {
-    const repository = await this.repositoriesRepository.findOne({
-      where: { id },
-    });
-
-    if (!repository) {
-      throw new NotFoundException(`Repository com ID ${id} não encontrado.`);
-    }
-
-    await this.repositoriesRepository.update(id, updateRepositoryDto);
-    return this.repositoriesRepository.findOneOrFail({ where: { id } });
+    await this.findOne(id, userLevel, userDepartmentId, userTeamId);
+    const updateData = withUserOwnership(
+      { ...updateRepositoryDto },
+      userDepartmentId,
+      userTeamId,
+    );
+    await this.repositoriesRepository.update(id, updateData);
+    return this.findOne(id, userLevel, userDepartmentId, userTeamId);
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(
+    id: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<void> {
+    await this.findOne(id, userLevel, userDepartmentId, userTeamId);
     const result = await this.repositoriesRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Repository com ID ${id} não encontrado.`);

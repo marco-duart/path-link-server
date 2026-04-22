@@ -5,7 +5,10 @@ import { Database } from '../database/entities/database.entity';
 import { CreateDatabaseDto } from './dto/create-database.dto';
 import { UpdateDatabaseDto } from './dto/update-database.dto';
 import * as crypto from 'crypto';
-import { getLevelByName } from '../enums/role.enum';
+import {
+  applyResourceScope,
+  withUserOwnership,
+} from '../common/utils/resource-scope';
 
 @Injectable()
 export class DatabasesService {
@@ -58,41 +61,59 @@ export class DatabasesService {
     }
   }
 
-  async create(createDatabaseDto: CreateDatabaseDto): Promise<Database> {
+  async create(
+    createDatabaseDto: CreateDatabaseDto,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Database> {
     const dataToSave = { ...createDatabaseDto };
 
     dataToSave.credentialsEncrypted = this.encrypt(
       dataToSave.credentialsEncrypted,
     );
 
-    const database = this.databasesRepository.create({
+    const databaseData = withUserOwnership(
+      {
       ...dataToSave,
       credentialsEncrypted: dataToSave.credentialsEncrypted,
-    });
+      },
+      userDepartmentId,
+      userTeamId,
+    );
+
+    const database = this.databasesRepository.create(databaseData);
 
     return this.databasesRepository.save(database);
   }
 
-  async findAll(
+  private buildScopedQuery(
     userLevel: number,
-    roleName: string,
     userDepartmentId?: string,
     userTeamId?: number,
-  ): Promise<Database[]> {
-    const isAdmin = getLevelByName('Admin') === userLevel;
-
+  ) {
     const query = this.databasesRepository
       .createQueryBuilder('db')
       .where('db.requiredLevel <= :userLevel', { userLevel });
 
-    if (!isAdmin && userDepartmentId && userTeamId) {
-      query.andWhere(
-        '(db.department_id = :deptId AND db.team_id = :teamId)',
-        { deptId: userDepartmentId, teamId: userTeamId },
-      );
-    }
+    return applyResourceScope(
+      query,
+      'db',
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    );
+  }
 
-    const databases = await query.getMany();
+  async findAll(
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Database[]> {
+    const databases = await this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    ).getMany();
 
     return databases.map((db) => {
       db.credentialsEncrypted = this.decrypt(db.credentialsEncrypted);
@@ -100,8 +121,19 @@ export class DatabasesService {
     });
   }
 
-  async findOne(id: string): Promise<Database> {
-    const database = await this.databasesRepository.findOne({ where: { id } });
+  async findOne(
+    id: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Database> {
+    const database = await this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    )
+      .andWhere('db.id = :id', { id })
+      .getOne();
 
     if (!database) {
       throw new NotFoundException(`Database com ID ${id} não encontrada.`);
@@ -115,13 +147,11 @@ export class DatabasesService {
   async update(
     id: string,
     updateDatabaseDto: UpdateDatabaseDto,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
   ): Promise<Database> {
-    const database = await this.databasesRepository.findOne({ where: { id } });
-
-    if (!database) {
-      throw new NotFoundException(`Database com ID ${id} não encontrada.`);
-    }
-
+    await this.findOne(id, userLevel, userDepartmentId, userTeamId);
     const updateData = { ...updateDatabaseDto };
 
     if (updateData.credentialsEncrypted) {
@@ -130,11 +160,23 @@ export class DatabasesService {
       );
     }
 
-    await this.databasesRepository.update(id, updateData);
-    return this.findOne(id);
+    const scopedUpdateData = withUserOwnership(
+      updateData,
+      userDepartmentId,
+      userTeamId,
+    );
+
+    await this.databasesRepository.update(id, scopedUpdateData);
+    return this.findOne(id, userLevel, userDepartmentId, userTeamId);
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(
+    id: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<void> {
+    await this.findOne(id, userLevel, userDepartmentId, userTeamId);
     const result = await this.databasesRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Database com ID ${id} não encontrada.`);

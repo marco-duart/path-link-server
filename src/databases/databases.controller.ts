@@ -7,8 +7,6 @@ import {
   Param,
   Delete,
   UseGuards,
-  HttpException,
-  HttpStatus,
 } from '@nestjs/common';
 import { DatabasesService } from './databases.service';
 import { CreateDatabaseDto } from './dto/create-database.dto';
@@ -28,8 +26,15 @@ export class DatabasesController {
   @UseGuards(RoleGuard)
   @Roles('Analista')
   @Post()
-  create(@Body() createDatabaseDto: CreateDatabaseDto) {
-    return this.databasesService.create(createDatabaseDto);
+  create(
+    @Body() createDatabaseDto: CreateDatabaseDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.databasesService.create(
+      createDatabaseDto,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @Get()
@@ -37,27 +42,20 @@ export class DatabasesController {
     const userLevel = getLevelByName(user.roleName);
     return this.databasesService.findAll(
       userLevel,
-      user.roleName,
       user.departmentId,
       user.teamId,
     );
   }
 
   @Get(':id')
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser('roleName') roleName: string,
-  ) {
-    const database = await this.databasesService.findOne(id);
-    const userLevel = getLevelByName(roleName);
-
-    if (userLevel < database.requiredLevel) {
-      throw new HttpException(
-        'Acesso negado. Nível de Role insuficiente para visualizar esta Database.',
-        HttpStatus.FORBIDDEN,
-      );
-    }
-    return database;
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.databasesService.findOne(
+      id,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @UseGuards(RoleGuard)
@@ -66,14 +64,28 @@ export class DatabasesController {
   update(
     @Param('id') id: string,
     @Body() updateDatabaseDto: UpdateDatabaseDto,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.databasesService.update(id, updateDatabaseDto);
+    const userLevel = getLevelByName(user.roleName);
+    return this.databasesService.update(
+      id,
+      updateDatabaseDto,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @UseGuards(RoleGuard)
   @Roles('Gerente')
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.databasesService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.databasesService.remove(
+      id,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 }

@@ -7,8 +7,6 @@ import {
   Param,
   Delete,
   UseGuards,
-  HttpException,
-  HttpStatus,
 } from '@nestjs/common';
 import { LinksService } from './links.service';
 import { CreateLinkDto } from './dto/create-link.dto';
@@ -28,8 +26,12 @@ export class LinksController {
   @UseGuards(RoleGuard)
   @Roles('Analista')
   @Post()
-  create(@Body() createLinkDto: CreateLinkDto) {
-    return this.linksService.create(createLinkDto);
+  create(@Body() createLinkDto: CreateLinkDto, @CurrentUser() user: JwtPayload) {
+    return this.linksService.create(
+      createLinkDto,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @Get()
@@ -37,40 +39,50 @@ export class LinksController {
     const userLevel = getLevelByName(user.roleName);
     return this.linksService.findAll(
       userLevel,
-      user.roleName,
       user.departmentId,
       user.teamId,
     );
   }
 
   @Get(':id')
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser('roleName') roleName: string,
-  ) {
-    const link = await this.linksService.findOne(id);
-    const userLevel = getLevelByName(roleName);
-
-    if (userLevel < link.requiredLevel) {
-      throw new HttpException(
-        'Acesso negado. Nível de Role insuficiente para visualizar este Link.',
-        HttpStatus.FORBIDDEN,
-      );
-    }
-    return link;
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.linksService.findOne(
+      id,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @UseGuards(RoleGuard)
   @Roles('Coordenador')
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateLinkDto: UpdateLinkDto) {
-    return this.linksService.update(id, updateLinkDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateLinkDto: UpdateLinkDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.linksService.update(
+      id,
+      updateLinkDto,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @UseGuards(RoleGuard)
   @Roles('Gerente')
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.linksService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.linksService.remove(
+      id,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 }

@@ -7,9 +7,6 @@ import {
   Param,
   Delete,
   UseGuards,
-  HttpException,
-  HttpStatus,
-  Query,
 } from '@nestjs/common';
 import { DeploysService } from './deploys.service';
 import { CreateDeployDto } from './dto/create-deploy.dto';
@@ -29,8 +26,12 @@ export class DeploysController {
   @UseGuards(RoleGuard)
   @Roles('Analista')
   @Post()
-  create(@Body() createDeployDto: CreateDeployDto) {
-    return this.deploysService.create(createDeployDto);
+  create(@Body() createDeployDto: CreateDeployDto, @CurrentUser() user: JwtPayload) {
+    return this.deploysService.create(
+      createDeployDto,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @Get()
@@ -38,37 +39,45 @@ export class DeploysController {
     const userLevel = getLevelByName(user.roleName);
     return this.deploysService.findAll(
       userLevel,
-      user.roleName,
       user.departmentId,
       user.teamId,
     );
   }
 
   @Get('type/:type')
-  findByType(@Param('type') type: string) {
-    return this.deploysService.findByType(type);
+  findByType(@Param('type') type: string, @CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.deploysService.findByType(
+      type,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @Get('environment/:environment')
-  findByEnvironment(@Param('environment') environment: string) {
-    return this.deploysService.findByEnvironment(environment);
+  findByEnvironment(
+    @Param('environment') environment: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.deploysService.findByEnvironment(
+      environment,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @Get(':id')
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser('roleName') roleName: string,
-  ) {
-    const deploy = await this.deploysService.findOne(id);
-    const userLevel = getLevelByName(roleName);
-
-    if (userLevel < deploy.requiredLevel) {
-      throw new HttpException(
-        'Acesso negado. Nível de Role insuficiente para visualizar este Deploy.',
-        HttpStatus.FORBIDDEN,
-      );
-    }
-    return deploy;
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.deploysService.findOne(
+      id,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @UseGuards(RoleGuard)
@@ -77,14 +86,28 @@ export class DeploysController {
   update(
     @Param('id') id: string,
     @Body() updateDeployDto: UpdateDeployDto,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.deploysService.update(id, updateDeployDto);
+    const userLevel = getLevelByName(user.roleName);
+    return this.deploysService.update(
+      id,
+      updateDeployDto,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @UseGuards(RoleGuard)
   @Roles('Gerente')
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.deploysService.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.deploysService.remove(
+      id,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 }

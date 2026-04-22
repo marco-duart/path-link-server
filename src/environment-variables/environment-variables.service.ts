@@ -5,7 +5,10 @@ import { EnvironmentVariable } from '../database/entities/environment-variable.e
 import { CreateEnvironmentVariableDto } from './dto/create-environment-variable.dto';
 import { UpdateEnvironmentVariableDto } from './dto/update-environment-variable.dto';
 import * as crypto from 'crypto';
-import { getLevelByName } from '../enums/role.enum';
+import {
+  applyResourceScope,
+  withUserOwnership,
+} from '../common/utils/resource-scope';
 
 @Injectable()
 export class EnvironmentVariablesService {
@@ -60,39 +63,55 @@ export class EnvironmentVariablesService {
 
   async create(
     createEnvVarDto: CreateEnvironmentVariableDto,
+    userDepartmentId?: string,
+    userTeamId?: number,
   ): Promise<EnvironmentVariable> {
     const dataToSave = { ...createEnvVarDto };
 
     const encryptedValue = this.encrypt(dataToSave.value);
 
-    const envVar = this.envVarRepository.create({
+    const envVarData = withUserOwnership(
+      {
       ...dataToSave,
       valueEncrypted: encryptedValue,
-    });
+      },
+      userDepartmentId,
+      userTeamId,
+    );
+
+    const envVar = this.envVarRepository.create(envVarData);
 
     return this.envVarRepository.save(envVar);
   }
 
-  async findAll(
+  private buildScopedQuery(
     userLevel: number,
-    roleName: string,
     userDepartmentId?: string,
     userTeamId?: number,
-  ): Promise<EnvironmentVariable[]> {
-    const isAdmin = getLevelByName('Admin') === userLevel;
-
+  ) {
     const query = this.envVarRepository
       .createQueryBuilder('envVar')
       .where('envVar.required_level <= :userLevel', { userLevel });
 
-    if (!isAdmin && userDepartmentId && userTeamId) {
-      query.andWhere(
-        '(envVar.department_id = :deptId AND envVar.team_id = :teamId)',
-        { deptId: userDepartmentId, teamId: userTeamId },
-      );
-    }
+    return applyResourceScope(
+      query,
+      'envVar',
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    );
+  }
 
-    const envVars = await query.getMany();
+  async findAll(
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<EnvironmentVariable[]> {
+    const envVars = await this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    ).getMany();
 
     return envVars.map((envVar) => {
       envVar.valueEncrypted = this.decrypt(envVar.valueEncrypted);
@@ -100,8 +119,19 @@ export class EnvironmentVariablesService {
     });
   }
 
-  async findOne(id: string): Promise<EnvironmentVariable> {
-    const envVar = await this.envVarRepository.findOne({ where: { id } });
+  async findOne(
+    id: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<EnvironmentVariable> {
+    const envVar = await this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    )
+      .andWhere('envVar.id = :id', { id })
+      .getOne();
 
     if (!envVar) {
       throw new NotFoundException(
@@ -117,14 +147,11 @@ export class EnvironmentVariablesService {
   async update(
     id: string,
     updateEnvVarDto: UpdateEnvironmentVariableDto,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
   ): Promise<EnvironmentVariable> {
-    const envVar = await this.envVarRepository.findOne({ where: { id } });
-
-    if (!envVar) {
-      throw new NotFoundException(
-        `Environment Variable com ID ${id} não encontrada.`,
-      );
-    }
+    await this.findOne(id, userLevel, userDepartmentId, userTeamId);
 
     const updateData = {};
 
@@ -135,11 +162,23 @@ export class EnvironmentVariablesService {
 
     Object.assign(updateData, updateEnvVarDto);
 
-    await this.envVarRepository.update(id, updateData);
-    return this.findOne(id);
+    const scopedUpdateData = withUserOwnership(
+      updateData as Record<string, any>,
+      userDepartmentId,
+      userTeamId,
+    );
+
+    await this.envVarRepository.update(id, scopedUpdateData);
+    return this.findOne(id, userLevel, userDepartmentId, userTeamId);
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(
+    id: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<void> {
+    await this.findOne(id, userLevel, userDepartmentId, userTeamId);
     const result = await this.envVarRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(

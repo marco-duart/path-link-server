@@ -77,33 +77,32 @@ export class AssetsController {
     const userLevel = getLevelByName(user.roleName);
     return this.assetsService.findAll(
       userLevel,
-      user.roleName,
       user.departmentId,
       user.teamId,
     );
   }
 
   @Get(':id')
-  async findOne(
-    @Param('id') id: string,
-    @CurrentUser('roleName') roleName: string,
-  ) {
-    const asset = await this.assetsService.findOne(id);
-    const userLevel = getLevelByName(roleName);
-
-    if (userLevel < asset.requiredLevel) {
-      throw new HttpException(
-        'Acesso negado. Nível de Role insuficiente para visualizar este Asset.',
-        HttpStatus.FORBIDDEN,
-      );
-    }
-    return asset;
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.assetsService.findOne(
+      id,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 
   @Delete(':id')
   @UseGuards(RoleGuard)
   @Roles('Coordenador')
-  async remove(@Param('id') id: string) {
-    return this.assetsService.remove(id);
+  async remove(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    const userLevel = getLevelByName(user.roleName);
+    return this.assetsService.remove(
+      id,
+      userLevel,
+      user.departmentId,
+      user.teamId,
+    );
   }
 }

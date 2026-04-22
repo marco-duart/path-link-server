@@ -4,7 +4,10 @@ import { Repository } from 'typeorm';
 import { ConfigurationItem } from '../database/entities/configuration-item.entity';
 import { CreateConfigurationItemDto } from './dto/create-configuration-item.dto';
 import { UpdateConfigurationItemDto } from './dto/update-configuration-item.dto';
-import { getLevelByName } from '../enums/role.enum';
+import {
+  applyResourceScope,
+  withUserOwnership,
+} from '../common/utils/resource-scope';
 
 @Injectable()
 export class ConfigurationItemsService {
@@ -15,37 +18,61 @@ export class ConfigurationItemsService {
 
   async create(
     createConfigItemDto: CreateConfigurationItemDto,
+    userDepartmentId?: string,
+    userTeamId?: number,
   ): Promise<ConfigurationItem> {
-    const configItem = this.configItemsRepository.create(createConfigItemDto);
+    const configItemData = withUserOwnership(
+      { ...createConfigItemDto },
+      userDepartmentId,
+      userTeamId,
+    );
+    const configItem = this.configItemsRepository.create(configItemData);
     return this.configItemsRepository.save(configItem);
   }
 
-  async findAll(
+  private buildScopedQuery(
     userLevel: number,
-    roleName: string,
     userDepartmentId?: string,
     userTeamId?: number,
-  ): Promise<ConfigurationItem[]> {
-    const isAdmin = getLevelByName('Admin') === userLevel;
-
+  ) {
     const query = this.configItemsRepository
       .createQueryBuilder('configItem')
       .where('configItem.required_level <= :userLevel', { userLevel });
 
-    if (!isAdmin && userDepartmentId && userTeamId) {
-      query.andWhere(
-        '(configItem.department_id = :deptId AND configItem.team_id = :teamId)',
-        { deptId: userDepartmentId, teamId: userTeamId },
-      );
-    }
-
-    return query.getMany();
+    return applyResourceScope(
+      query,
+      'configItem',
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    );
   }
 
-  async findOne(id: string): Promise<ConfigurationItem> {
-    const configItem = await this.configItemsRepository.findOne({
-      where: { id },
-    });
+  async findAll(
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<ConfigurationItem[]> {
+    return this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    ).getMany();
+  }
+
+  async findOne(
+    id: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<ConfigurationItem> {
+    const configItem = await this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    )
+      .andWhere('configItem.id = :id', { id })
+      .getOne();
 
     if (!configItem) {
       throw new NotFoundException(
@@ -59,22 +86,27 @@ export class ConfigurationItemsService {
   async update(
     id: string,
     updateConfigItemDto: UpdateConfigurationItemDto,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
   ): Promise<ConfigurationItem> {
-    const configItem = await this.configItemsRepository.findOne({
-      where: { id },
-    });
-
-    if (!configItem) {
-      throw new NotFoundException(
-        `Configuration Item com ID ${id} não encontrado.`,
-      );
-    }
-
-    await this.configItemsRepository.update(id, updateConfigItemDto);
-    return this.configItemsRepository.findOneOrFail({ where: { id } });
+    await this.findOne(id, userLevel, userDepartmentId, userTeamId);
+    const updateData = withUserOwnership(
+      { ...updateConfigItemDto },
+      userDepartmentId,
+      userTeamId,
+    );
+    await this.configItemsRepository.update(id, updateData);
+    return this.findOne(id, userLevel, userDepartmentId, userTeamId);
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(
+    id: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<void> {
+    await this.findOne(id, userLevel, userDepartmentId, userTeamId);
     const result = await this.configItemsRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(

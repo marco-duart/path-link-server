@@ -5,7 +5,10 @@ import { Account } from '../database/entities/account.entity';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
 import * as crypto from 'crypto';
-import { getLevelByName } from '../enums/role.enum';
+import {
+  applyResourceScope,
+  withUserOwnership,
+} from '../common/utils/resource-scope';
 
 @Injectable()
 export class AccountsService {
@@ -75,8 +78,16 @@ export class AccountsService {
     return entityData;
   }
 
-  async create(createAccountDto: CreateAccountDto): Promise<Account> {
-    const accountData = this.mapAccountDtoToEntityData(createAccountDto);
+  async create(
+    createAccountDto: CreateAccountDto,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Account> {
+    const accountData = withUserOwnership(
+      this.mapAccountDtoToEntityData(createAccountDto),
+      userDepartmentId,
+      userTeamId,
+    );
 
     if (accountData.passwordEncrypted) {
       accountData.passwordEncrypted = this.encrypt(
@@ -88,27 +99,35 @@ export class AccountsService {
     return this.accountsRepository.save(account);
   }
 
-  async findAll(
+  private buildScopedQuery(
     userLevel: number,
-    roleName: string,
     userDepartmentId?: string,
     userTeamId?: number,
-  ): Promise<Account[]> {
-    const isAdmin = getLevelByName('Admin') === userLevel;
-
+  ) {
     const query = this.accountsRepository
       .createQueryBuilder('account')
       .where('account.required_level <= :userLevel', { userLevel })
       .leftJoinAndSelect('account.twoFactorQrAsset', 'twoFactorQrAsset');
 
-    if (!isAdmin && userDepartmentId && userTeamId) {
-      query.andWhere(
-        '(account.department_id = :deptId AND account.team_id = :teamId)',
-        { deptId: userDepartmentId, teamId: userTeamId },
-      );
-    }
+    return applyResourceScope(
+      query,
+      'account',
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    );
+  }
 
-    const accounts = await query.getMany();
+  async findAll(
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Account[]> {
+    const accounts = await this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    ).getMany();
 
     return accounts.map((a) => {
       if (a.passwordEncrypted) {
@@ -118,11 +137,19 @@ export class AccountsService {
     });
   }
 
-  async findOne(id: string): Promise<Account> {
-    const account = await this.accountsRepository.findOne({
-      where: { id },
-      relations: ['twoFactorQrAsset'],
-    });
+  async findOne(
+    id: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<Account> {
+    const account = await this.buildScopedQuery(
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    )
+      .andWhere('account.id = :id', { id })
+      .getOne();
 
     if (!account) {
       throw new NotFoundException(`Account with ID ${id} not found.`);
@@ -138,24 +165,28 @@ export class AccountsService {
   async update(
     id: string,
     updateAccountDto: UpdateAccountDto,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
   ): Promise<Account> {
-    const account = await this.accountsRepository.findOne({ where: { id } });
-
-    if (!account) {
-      throw new NotFoundException(`Account with ID ${id} not found.`);
-    }
-
-    const updateData = this.mapAccountDtoToEntityData(updateAccountDto);
+    await this.findOne(id, userLevel, userDepartmentId, userTeamId);
+    const updateData = withUserOwnership(
+      this.mapAccountDtoToEntityData(updateAccountDto),
+      userDepartmentId,
+      userTeamId,
+    );
 
     if (updateData.passwordEncrypted) {
       updateData.passwordEncrypted = this.encrypt(updateData.passwordEncrypted);
     }
 
     await this.accountsRepository.update(id, updateData);
-    const updated = await this.accountsRepository.findOneOrFail({
-      where: { id },
-      relations: ['twoFactorQrAsset'],
-    });
+    const updated = await this.findOne(
+      id,
+      userLevel,
+      userDepartmentId,
+      userTeamId,
+    );
 
     if (updated.passwordEncrypted) {
       updated.passwordEncrypted = this.decrypt(updated.passwordEncrypted);
@@ -164,7 +195,13 @@ export class AccountsService {
     return updated;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(
+    id: string,
+    userLevel: number,
+    userDepartmentId?: string,
+    userTeamId?: number,
+  ): Promise<void> {
+    await this.findOne(id, userLevel, userDepartmentId, userTeamId);
     const result = await this.accountsRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Account with ID ${id} not found.`);

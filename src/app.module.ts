@@ -17,6 +17,8 @@ import { StepsModule } from './steps/steps.module';
 import { ProcessesModule } from './processes/processes.module';
 import { StepRelationshipsModule } from './step-relationships/step-relationships.module';
 import { DeploysModule } from './deploys/deploys.module';
+import { SoftwaresModule } from './softwares/softwares.module';
+import { LogisticsModule } from './logistics/logistics.module';
 
 @Module({
   imports: [
@@ -38,6 +40,8 @@ import { DeploysModule } from './deploys/deploys.module';
     ProcessesModule,
     StepRelationshipsModule,
     DeploysModule,
+    SoftwaresModule,
+    LogisticsModule,
   ],
 })
 export class AppModule {}

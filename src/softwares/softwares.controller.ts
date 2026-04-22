@@ -8,9 +8,9 @@ import {
   Delete,
   UseGuards,
 } from '@nestjs/common';
-import { RepositoriesService } from './repositories.service';
-import { CreateRepositoryDto } from './dto/create-repository.dto';
-import { UpdateRepositoryDto } from './dto/update-repository.dto';
+import { SoftwaresService } from './softwares.service';
+import { CreateSoftwareDto } from './dto/create-software.dto';
+import { UpdateSoftwareDto } from './dto/update-software.dto';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
 import { CurrentUser } from '../decorators/current-user.decorator';
@@ -19,19 +19,16 @@ import { Roles } from '../decorators/roles.decorator';
 import { JwtPayload } from '../auth/jwt/dto/jwt-payload.dto';
 
 @UseGuards(AuthGuard)
-@Controller('repositories')
-export class RepositoriesController {
-  constructor(private readonly repositoriesService: RepositoriesService) {}
+@Controller('softwares')
+export class SoftwaresController {
+  constructor(private readonly softwaresService: SoftwaresService) {}
 
   @UseGuards(RoleGuard)
   @Roles('Analista')
   @Post()
-  create(
-    @Body() createRepositoryDto: CreateRepositoryDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    return this.repositoriesService.create(
-      createRepositoryDto,
+  create(@Body() createSoftwareDto: CreateSoftwareDto, @CurrentUser() user: JwtPayload) {
+    return this.softwaresService.create(
+      createSoftwareDto,
       user.departmentId,
       user.teamId,
     );
@@ -40,7 +37,7 @@ export class RepositoriesController {
   @Get()
   findAll(@CurrentUser() user: JwtPayload) {
     const userLevel = getLevelByName(user.roleName);
-    return this.repositoriesService.findAll(
+    return this.softwaresService.findAll(
       userLevel,
       user.departmentId,
       user.teamId,
@@ -50,7 +47,7 @@ export class RepositoriesController {
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     const userLevel = getLevelByName(user.roleName);
-    return this.repositoriesService.findOne(
+    return this.softwaresService.findOne(
       id,
       userLevel,
       user.departmentId,
@@ -63,13 +60,13 @@ export class RepositoriesController {
   @Patch(':id')
   update(
     @Param('id') id: string,
-    @Body() updateRepositoryDto: UpdateRepositoryDto,
+    @Body() updateSoftwareDto: UpdateSoftwareDto,
     @CurrentUser() user: JwtPayload,
   ) {
     const userLevel = getLevelByName(user.roleName);
-    return this.repositoriesService.update(
+    return this.softwaresService.update(
       id,
-      updateRepositoryDto,
+      updateSoftwareDto,
       userLevel,
       user.departmentId,
       user.teamId,
@@ -81,7 +78,7 @@ export class RepositoriesController {
   @Delete(':id')
   remove(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     const userLevel = getLevelByName(user.roleName);
-    return this.repositoriesService.remove(
+    return this.softwaresService.remove(
       id,
       userLevel,
       user.departmentId,

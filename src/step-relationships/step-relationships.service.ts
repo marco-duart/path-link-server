@@ -20,6 +20,7 @@ import { DatabasesService } from '../databases/databases.service';
 import { EnvironmentVariablesService } from '../environment-variables/environment-variables.service';
 import { LinksService } from '../links/links.service';
 import { RepositoriesService } from '../repositories/repositories.service';
+import { SoftwaresService } from '../softwares/softwares.service';
 
 interface ErrorWithMessage {
   message?: string;
@@ -83,6 +84,7 @@ export class StepRelationshipsService {
     private envVarService: EnvironmentVariablesService,
     private linksService: LinksService,
     private repositoriesService: RepositoriesService,
+    private softwaresService: SoftwaresService,
   ) {
     this.relatableServices = {
       Account: this.accountsService,
@@ -92,6 +94,7 @@ export class StepRelationshipsService {
       EnvironmentVariable: this.envVarService,
       Link: this.linksService,
       Repository: this.repositoriesService,
+      Software: this.softwaresService,
     };
   }
 
