@@ -95,7 +95,7 @@ export class EnvironmentVariablesService {
     const envVars = await query.getMany();
 
     return envVars.map((envVar) => {
-      (envVar as any).value = this.decrypt(envVar.valueEncrypted);
+      envVar.valueEncrypted = this.decrypt(envVar.valueEncrypted);
       return envVar;
     });
   }
@@ -109,7 +109,7 @@ export class EnvironmentVariablesService {
       );
     }
 
-    (envVar as any).value = this.decrypt(envVar.valueEncrypted);
+    envVar.valueEncrypted = this.decrypt(envVar.valueEncrypted);
 
     return envVar;
   }
